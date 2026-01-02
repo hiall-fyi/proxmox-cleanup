@@ -37,6 +37,7 @@ The installation script will automatically:
 - Configure log rotation
 
 ![Installation Success](docs/images/installation-success.png)
+*Screenshot showing successful installation with all components properly configured*
 
 ### 2. Configure
 ```bash
