@@ -35,9 +35,15 @@ export class ProxmoxClient implements IProxmoxClient {
     try {
       // Check if token is API token format (contains ! for token ID)
       if (this.config.token.includes('!')) {
-        // API Token authentication
-        const authHeader = `PVEAPIToken=${this.config.token}`;
-        this.apiClient.defaults.headers.common['Authorization'] = authHeader;
+        // API Token authentication - use = instead of : for the secret part
+        const tokenParts = this.config.token.split(':');
+        if (tokenParts.length === 2) {
+          const tokenWithEquals = `${tokenParts[0]}=${tokenParts[1]}`;
+          const authHeader = `PVEAPIToken=${tokenWithEquals}`;
+          this.apiClient.defaults.headers.common['Authorization'] = authHeader;
+        } else {
+          throw new Error('Invalid API token format. Expected: user@realm!tokenid:secret');
+        }
         
         // Test the token by making a simple API call
         const response = await this.apiClient.get('/version');
