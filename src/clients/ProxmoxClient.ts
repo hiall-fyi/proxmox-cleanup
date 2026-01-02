@@ -33,22 +33,40 @@ export class ProxmoxClient implements IProxmoxClient {
    */
   async authenticate(): Promise<void> {
     try {
-      const response = await this.apiClient.post('/access/ticket', {
-        username: this.extractUsername(this.config.token),
-        password: this.extractPassword(this.config.token)
-      });
-
-      if (response.data?.data) {
-        this.ticket = response.data.data.ticket;
-        this.csrfToken = response.data.data.CSRFPreventionToken;
-
-        // Update default headers for authenticated requests
-        this.apiClient.defaults.headers.common['Cookie'] = `PVEAuthCookie=${this.ticket}`;
-        this.apiClient.defaults.headers.common['CSRFPreventionToken'] = this.csrfToken;
-
-        this.authenticated = true;
+      // Check if token is API token format (contains ! for token ID)
+      if (this.config.token.includes('!')) {
+        // API Token authentication
+        const authHeader = `PVEAPIToken=${this.config.token}`;
+        this.apiClient.defaults.headers.common['Authorization'] = authHeader;
+        
+        // Test the token by making a simple API call
+        const response = await this.apiClient.get('/version');
+        
+        if (response.data) {
+          this.authenticated = true;
+          return;
+        } else {
+          throw new Error('Invalid API token response');
+        }
       } else {
-        throw new Error('Invalid authentication response');
+        // Username/password authentication (legacy)
+        const response = await this.apiClient.post('/access/ticket', {
+          username: this.extractUsername(this.config.token),
+          password: this.extractPassword(this.config.token)
+        });
+
+        if (response.data?.data) {
+          this.ticket = response.data.data.ticket;
+          this.csrfToken = response.data.data.CSRFPreventionToken;
+
+          // Update default headers for authenticated requests
+          this.apiClient.defaults.headers.common['Cookie'] = `PVEAuthCookie=${this.ticket}`;
+          this.apiClient.defaults.headers.common['CSRFPreventionToken'] = this.csrfToken;
+
+          this.authenticated = true;
+        } else {
+          throw new Error('Invalid authentication response');
+        }
       }
     } catch (error) {
       this.authenticated = false;
