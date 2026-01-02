@@ -23,8 +23,8 @@ export class ProxmoxClient implements IProxmoxClient {
    * Validate token format
    */
   private validateToken(token: string): void {
-    if (!token.includes(':')) {
-      throw new Error('Invalid token format');
+    if (!token.includes(':') && !token.includes('!')) {
+      throw new Error('Invalid token format. Expected format: user@realm:password or user@realm!tokenid:secret');
     }
   }
 
@@ -178,6 +178,10 @@ export class ProxmoxClient implements IProxmoxClient {
           this.authenticated = false;
           this.ticket = undefined;
           this.csrfToken = undefined;
+          // Clear authorization headers on 401
+          delete this.apiClient.defaults.headers.common['Authorization'];
+          delete this.apiClient.defaults.headers.common['Cookie'];
+          delete this.apiClient.defaults.headers.common['CSRFPreventionToken'];
         }
         return Promise.reject(error);
       }
