@@ -1,6 +1,47 @@
-# Proxmox Cleanup System
+# 🧹 Proxmox Cleanup Tool
 
-Automated cleanup tool for unused Docker resources on Proxmox infrastructure.
+[![Tests](https://img.shields.io/badge/tests-157%20passing-brightgreen)](https://github.com/busyass/proxmox-cleanup)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-supported-blue)](https://www.docker.com/)
+
+**Automated cleanup tool for unused Docker resources on Proxmox VE infrastructure**
+
+🚀 **One-line installation**: 
+```bash
+curl -fsSL https://raw.githubusercontent.com/busyass/proxmox-cleanup/main/scripts/install.sh | bash
+```
+
+## ✨ Why Proxmox Cleanup?
+
+- 🔄 **Automated Docker cleanup** - Remove unused containers, images, volumes, and networks
+- 🛡️ **Safe & Smart** - Backup before cleanup, dry-run mode, resource protection
+- ⚡ **Production Ready** - 157 tests, comprehensive error handling, logging
+- 🎯 **Proxmox Optimized** - Designed specifically for Proxmox VE environments
+- 📅 **Scheduled Cleanup** - Set it and forget it with cron scheduling
+- 🔔 **Notifications** - Webhook notifications for cleanup results
+
+## 🚀 Quick Start
+
+### 1. Install (One Command)
+```bash
+curl -fsSL https://raw.githubusercontent.com/busyass/proxmox-cleanup/main/scripts/install.sh | bash
+```
+
+### 2. Configure
+```bash
+nano /etc/proxmox-cleanup/config.json
+```
+
+### 3. Test (Dry Run)
+```bash
+proxmox-cleanup dry-run -c /etc/proxmox-cleanup/config.json
+```
+
+### 4. Clean Up
+```bash
+proxmox-cleanup cleanup -c /etc/proxmox-cleanup/config.json
+```
 
 ## Features
 
