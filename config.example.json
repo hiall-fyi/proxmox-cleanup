@@ -1,0 +1,39 @@
+{
+  "proxmox": {
+    "host": "proxmox.example.com",
+    "token": "root@pam:your-api-token-here",
+    "nodeId": "node1"
+  },
+  "cleanup": {
+    "dryRun": false,
+    "resourceTypes": [],
+    "protectedPatterns": [
+      "important-*",
+      "system-*",
+      "production-*"
+    ],
+    "backupEnabled": true,
+    "backupPath": "./backups"
+  },
+  "reporting": {
+    "verbose": true,
+    "logPath": "./logs"
+  },
+  "scheduling": {
+    "enabled": false,
+    "cronExpression": "0 2 * * *",
+    "dryRun": true,
+    "timezone": "UTC"
+  },
+  "notifications": {
+    "enabled": false,
+    "onSuccess": true,
+    "onFailure": true,
+    "onStart": false,
+    "webhookUrl": "https://your-webhook-url.com/webhook",
+    "emailRecipients": [
+      "admin@example.com"
+    ],
+    "slackChannel": "#alerts"
+  }
+}

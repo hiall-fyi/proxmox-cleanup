@@ -1,0 +1,49 @@
+# Build output
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# Test coverage
+coverage/
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Config files
+*.config.js
+jest.config.js
+
+# Temporary files
+.tmp/
+temp/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backup files
+*.backup.*
+*.bak
+
+# Generated files
+RELEASE-FILES.txt
