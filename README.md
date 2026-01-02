@@ -58,31 +58,8 @@ proxmox-cleanup cleanup -c /etc/proxmox-cleanup/config.json
 
 Here's what proxmox-cleanup found and cleaned on a production Proxmox VE server:
 
-```bash
-root@pve:~# proxmox-cleanup dry-run -c /etc/proxmox-cleanup/config.json
-🔍 Starting dry-run preview...
-
-info: Starting dry-run operation {"mode":"dry-run","resourceCount":38}
-info: Removed volume: gitlab_data (512.19 MB)
-info: Removed volume: runner-cache-1 (367.68 MB) 
-info: Removed volume: gitlab_logs (157.08 MB)
-info: Removed volume: runner-cache-2 (7.87 MB)
-info: Removed volume: runner-cache-3 (1.58 MB)
-... (33 more resources)
-info: Removed network: unused_network_1
-info: Removed network: unused_network_2
-
-🔍 DRY-RUN REPORT
-==================================================
-📊 Resources Scanned: 38
-📋 Resources Would Be Removed: 38  
-💾 Disk Space Would Be Freed: 1.02 GB
-⏱️ Execution Time: 2378ms
-==================================================
-
-💡 This was a dry-run. No resources were actually removed.
-💡 Run without --dry-run to perform actual cleanup.
-```
+![Cleanup Results Demo](docs/images/cleanup-results-demo.png)
+*Screenshot showing actual cleanup results: 38 resources scanned, 1.02 GB freed*
 
 **Results Summary:**
 - 📊 **Resources Scanned**: 38 unused Docker resources
