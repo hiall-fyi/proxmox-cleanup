@@ -142,14 +142,34 @@ install_globally() {
     log_info "Installing globally..."
     cd "$INSTALL_DIR"
     
+    # Ensure dist directory exists and is built
+    if [ ! -d "dist" ] || [ ! -f "dist/cli/index.js" ]; then
+        log_info "Building project for global installation..."
+        
+        # Ensure TypeScript is available for building
+        if ! command -v tsc &> /dev/null; then
+            log_info "TypeScript compiler not found globally, using local version..."
+            # Use npx to run local TypeScript
+            if ! npx tsc; then
+                log_error "Build failed. TypeScript compilation error."
+                exit 1
+            fi
+        else
+            if ! npm run build; then
+                log_error "Build failed. Cannot install globally without built files."
+                exit 1
+            fi
+        fi
+    fi
+    
     # Uninstall previous version if exists
     if npm list -g proxmox-cleanup &> /dev/null; then
         npm uninstall -g proxmox-cleanup
         log_info "Removed previous global installation"
     fi
     
-    # Install globally
-    npm install -g .
+    # Install globally with --production flag to avoid dev dependencies
+    npm install -g . --production
     log_success "Installed globally"
 }
 

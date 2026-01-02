@@ -13,8 +13,7 @@
     "test:coverage": "jest --coverage",
     "lint": "eslint src --ext .ts",
     "start": "node dist/cli/index.js",
-    "prepare-release": "./scripts/prepare-release.sh",
-    "postinstall": "npm run build"
+    "prepare-release": "./scripts/prepare-release.sh"
   },
   "keywords": [
     "proxmox",

@@ -4,8 +4,11 @@ import { Resource } from '../../types';
 
 describe('BackupManager Error Handling', () => {
   it('should handle backup creation failure gracefully', async () => {
-    // Use an invalid path that will cause write failure
-    const backupManager = new BackupManager('/invalid/readonly/path');
+    const backupManager = new BackupManager('./test-backups-fail');
+
+    // Mock the ensureBackupDirectory method to simulate failure
+    const originalEnsureBackupDirectory = (backupManager as any).ensureBackupDirectory;
+    (backupManager as any).ensureBackupDirectory = jest.fn().mockRejectedValue(new Error('Permission denied'));
 
     const testResources: Resource[] = [
       {
@@ -20,10 +23,13 @@ describe('BackupManager Error Handling', () => {
 
     const result = await backupManager.createBackup(testResources);
 
-    // Property: Backup should fail gracefully
+    // Property: Backup should fail gracefully when directory creation fails
     expect(result.success).toBe(false);
     expect(result.error).toBeTruthy();
     expect(result.error).toContain('Failed to create backup');
+
+    // Restore original method
+    (backupManager as any).ensureBackupDirectory = originalEnsureBackupDirectory;
   });
 
   it('should handle file read errors when loading backup', async () => {
