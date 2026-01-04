@@ -103,38 +103,6 @@ proxmox-cleanup dry-run -c /etc/proxmox-cleanup/config.json
 proxmox-cleanup cleanup -c /etc/proxmox-cleanup/config.json
 ```
 
-## 📖 Usage Examples
-
-### Dry Run (Preview Mode)
-
-```bash
-# Preview what would be removed
-proxmox-cleanup dry-run
-
-# Preview specific resource types
-proxmox-cleanup dry-run --types containers,images
-```
-
-### Actual Cleanup
-
-```bash
-# Clean all unused resources with backup
-proxmox-cleanup cleanup
-
-# Clean specific types without backup
-proxmox-cleanup cleanup --types volumes --no-backup
-```
-
-### List Unused Resources
-
-```bash
-# List all unused resources
-proxmox-cleanup list
-
-# List specific types sorted by size
-proxmox-cleanup list --types images --sort-by-size
-```
-
 ## 🔧 Installation Methods
 
 ### Install from Source
@@ -257,6 +225,38 @@ proxmox-cleanup validate-config [options]
 
 Options:
   -c, --config <path>              Configuration file to validate
+```
+
+## 📖 Usage Examples
+
+### Dry Run (Preview Mode)
+
+```bash
+# Preview what would be removed
+proxmox-cleanup dry-run
+
+# Preview specific resource types
+proxmox-cleanup dry-run --types containers,images
+```
+
+### Actual Cleanup
+
+```bash
+# Clean all unused resources with backup
+proxmox-cleanup cleanup
+
+# Clean specific types without backup
+proxmox-cleanup cleanup --types volumes --no-backup
+```
+
+### List Unused Resources
+
+```bash
+# List all unused resources
+proxmox-cleanup list
+
+# List specific types sorted by size
+proxmox-cleanup list --types images --sort-by-size
 ```
 
 ## 📊 Advanced Topics
