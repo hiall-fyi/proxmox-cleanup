@@ -26,7 +26,7 @@ curl -fsSL https://raw.githubusercontent.com/hiall-fyi/proxmox-cleanup/main/scri
 
 </div>
 
-## ✨ Why Proxmox Cleanup?
+## 🎯 Features
 
 - 🔄 **Automated Docker cleanup** - Remove unused containers, images, volumes, and networks
 - 🛡️ **Safe & Smart** - Backup before cleanup, dry-run mode, resource protection
@@ -34,15 +34,52 @@ curl -fsSL https://raw.githubusercontent.com/hiall-fyi/proxmox-cleanup/main/scri
 - 🎯 **Proxmox Optimized** - Designed specifically for Proxmox VE environments
 - 📅 **Scheduled Cleanup** - Set it and forget it with cron scheduling
 - 🔔 **Notifications** - Webhook notifications for cleanup results
+- 🐳 **Docker Resource Management** - Automatically identifies and removes unused containers, images, volumes, and networks
+- 💾 **Backup System** - Automatic backup of resource metadata before cleanup
+- 📊 **Comprehensive Reporting** - Detailed reports with disk space calculations and execution metrics
+- 🖥️ **CLI Interface** - Full-featured command-line interface with multiple commands
+- 🧪 **Property-Based Testing** - Comprehensive test suite with 100+ iterations per property
+- ⏰ **Scheduling** - Automated cleanup with cron expressions
+- 🛡️ **Safety First** - Protected resource patterns, dependency checking, and dry-run mode
+
+### 📸 Real-World Results
+
+Here's what proxmox-cleanup found and cleaned on a production Proxmox VE server:
+
+![Cleanup Results Demo](docs/images/cleanup-results-demo.png)
+*Screenshot showing actual cleanup results: 38 resources scanned, 1.02 GB freed*
+
+**Results Summary:**
+
+- 📊 **Resources Scanned**: 38 unused Docker resources
+- 🗑️ **Resources Cleaned**: 38 items (100% success rate)
+- 💾 **Disk Space Freed**: 1.02 GB
+- ⏱️ **Execution Time**: 2.3 seconds
+- 🛡️ **Safety**: All operations logged and backed up
+
+The tool successfully identified and cleaned:
+
+- Unused Docker volumes (including large GitLab data: 512MB)
+- Orphaned runner cache volumes (367MB+ total)
+- Unused Docker networks
+- Various temporary volumes and build artifacts
+
+## 📋 Prerequisites
+
+- Node.js 18+ and npm
+- Docker daemon running
+- Proxmox VE (optional, for Proxmox integration)
 
 ## 🚀 Quick Start
 
-### 1. Install (One Command)
+### One-Line Installation
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/busyass/proxmox-cleanup/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hiall-fyi/proxmox-cleanup/main/scripts/install.sh | bash
 ```
 
 The installation script will automatically:
+
 - Install Node.js and dependencies
 - Build the project
 - Set up global CLI command
@@ -53,64 +90,57 @@ The installation script will automatically:
 ![Installation Success](docs/images/installation-success.png)
 *Screenshot showing successful installation with all components properly configured*
 
-### 2. Configure
+### Basic Usage
+
 ```bash
+# 1. Configure
 nano /etc/proxmox-cleanup/config.json
-```
 
-### 3. Test (Dry Run)
-```bash
+# 2. Test (Dry Run)
 proxmox-cleanup dry-run -c /etc/proxmox-cleanup/config.json
-```
 
-### 4. Clean Up
-```bash
+# 3. Clean Up
 proxmox-cleanup cleanup -c /etc/proxmox-cleanup/config.json
 ```
 
-## 📸 Real-World Results
+## 📖 Usage Examples
 
-Here's what proxmox-cleanup found and cleaned on a production Proxmox VE server:
+### Dry Run (Preview Mode)
 
-![Cleanup Results Demo](docs/images/cleanup-results-demo.png)
-*Screenshot showing actual cleanup results: 38 resources scanned, 1.02 GB freed*
+```bash
+# Preview what would be removed
+proxmox-cleanup dry-run
 
-**Results Summary:**
-- 📊 **Resources Scanned**: 38 unused Docker resources
-- 🗑️ **Resources Cleaned**: 38 items (100% success rate)
-- 💾 **Disk Space Freed**: 1.02 GB
-- ⏱️ **Execution Time**: 2.3 seconds
-- 🛡️ **Safety**: All operations logged and backed up
+# Preview specific resource types
+proxmox-cleanup dry-run --types containers,images
+```
 
-The tool successfully identified and cleaned:
-- Unused Docker volumes (including large GitLab data: 512MB)
-- Orphaned runner cache volumes (367MB+ total)  
-- Unused Docker networks
-- Various temporary volumes and build artifacts
+### Actual Cleanup
 
-## Features
+```bash
+# Clean all unused resources with backup
+proxmox-cleanup cleanup
 
-- 🐳 **Docker Resource Management**: Automatically identifies and removes unused containers, images, volumes, and networks
-- 🛡️ **Safety First**: Protected resource patterns, dependency checking, and dry-run mode
-- 💾 **Backup System**: Automatic backup of resource metadata before cleanup
-- 📊 **Comprehensive Reporting**: Detailed reports with disk space calculations and execution metrics
-- ⏰ **Scheduling**: Automated cleanup with cron expressions
-- 🔔 **Notifications**: Webhook, email, and Slack notifications for cleanup events
-- 🖥️ **CLI Interface**: Full-featured command-line interface with multiple commands
-- 🧪 **Property-Based Testing**: Comprehensive test suite with 100+ iterations per property
+# Clean specific types without backup
+proxmox-cleanup cleanup --types volumes --no-backup
+```
 
-## Installation
+### List Unused Resources
 
-### Prerequisites
+```bash
+# List all unused resources
+proxmox-cleanup list
 
-- Node.js 18+ and npm
-- Docker daemon running
-- Proxmox VE (optional, for Proxmox integration)
+# List specific types sorted by size
+proxmox-cleanup list --types images --sort-by-size
+```
+
+## 🔧 Installation Methods
 
 ### Install from Source
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/hiall-fyi/proxmox-cleanup.git
 cd proxmox-cleanup
 npm install
 npm run build
@@ -122,39 +152,7 @@ npm run build
 npm install -g proxmox-cleanup
 ```
 
-## Quick Start
-
-### 1. Dry Run (Preview Mode)
-
-```bash
-# Preview what would be removed
-proxmox-cleanup dry-run
-
-# Preview specific resource types
-proxmox-cleanup dry-run --types containers,images
-```
-
-### 2. Actual Cleanup
-
-```bash
-# Clean all unused resources with backup
-proxmox-cleanup cleanup
-
-# Clean specific types without backup
-proxmox-cleanup cleanup --types volumes --no-backup
-```
-
-### 3. List Unused Resources
-
-```bash
-# List all unused resources
-proxmox-cleanup list
-
-# List specific types sorted by size
-proxmox-cleanup list --types images --sort-by-size
-```
-
-## Configuration
+## 🔧 Configuration
 
 ### Configuration File
 
@@ -208,7 +206,7 @@ proxmox-cleanup cleanup \
   --proxmox-token "root@pam:token"
 ```
 
-## Commands
+## 📚 CLI Commands Reference
 
 ### `cleanup`
 
@@ -261,14 +259,16 @@ Options:
   -c, --config <path>              Configuration file to validate
 ```
 
-## Resource Types
+## 📊 Advanced Topics
+
+### Resource Types
 
 - **containers**: Stopped or exited containers
 - **images**: Images not used by any container
 - **volumes**: Volumes not mounted by any container
 - **networks**: Networks with no connected containers (excluding defaults)
 
-## Protection Patterns
+### Protection Patterns
 
 Protect resources from cleanup using patterns:
 
@@ -277,7 +277,7 @@ Protect resources from cleanup using patterns:
 - **Tags**: Resources with specific tags
 - **IDs**: Exact resource IDs
 
-## Backup System
+### Backup System
 
 Before cleanup, the system creates backups containing:
 
@@ -288,7 +288,7 @@ Before cleanup, the system creates backups containing:
 
 Backup files are stored in the configured backup directory with timestamps.
 
-## Scheduling
+### Scheduling & Automation
 
 Automate cleanup with cron expressions:
 
@@ -304,16 +304,17 @@ Automate cleanup with cron expressions:
 ```
 
 Common cron patterns:
+
 - `0 2 * * *` - Daily at 2 AM
 - `0 */6 * * *` - Every 6 hours
 - `0 0 * * 0` - Weekly on Sunday
 - `0 0 1 * *` - Monthly on 1st
 
-## Notifications
+### Notifications
 
 Get notified about cleanup results:
 
-### Webhook Notifications
+**Webhook Notifications**
 
 ```json
 {
@@ -326,36 +327,36 @@ Get notified about cleanup results:
 }
 ```
 
-### Email & Slack (Placeholder)
+**Email & Slack (Placeholder)**
 
 Email and Slack integrations are implemented as placeholders. Extend the `NotificationService` class to add actual implementations.
 
-## Safety Features
+### Safety Features
 
-### Dependency Checking
+**Dependency Checking**
 
 - Containers using images are protected
 - Volumes mounted by containers are protected
 - Networks with connected containers are protected
 - Stopped containers with restart policies are protected
 
-### Protected Resources
+**Protected Resources**
 
 - System networks (bridge, host, none)
 - Resources matching protection patterns
 - Resources with specific tags or IDs
 
-### Dry-Run Mode
+**Dry-Run Mode**
 
 - Preview all operations without making changes
 - Identical results across multiple runs
 - Safe for testing and validation
 
-## Reporting
+### Reporting & Monitoring
 
-### Summary Reports
+**Summary Reports**
 
-```
+```text
 🧹 CLEANUP REPORT
 ==================================================
 📊 Resources Scanned: 25
@@ -365,43 +366,64 @@ Email and Slack integrations are implemented as placeholders. Extend the `Notifi
 ==================================================
 ```
 
-### Detailed Reports
+**Detailed Reports**
 
 - JSON reports with full resource details
 - Text summaries for human reading
 - Execution logs with timestamps
 - Success/failure rates
 
-## Development
+## 🐛 Troubleshooting
 
-### Building
+### Common Issues
+
+**Docker daemon not running**
+```bash
+# Check Docker status
+systemctl status docker
+
+# Start Docker
+systemctl start docker
+```
+
+**Permission denied errors**
+```bash
+# Add user to docker group
+sudo usermod -aG docker $USER
+
+# Re-login or run
+newgrp docker
+```
+
+**Configuration validation failed**
+```bash
+# Validate config file
+proxmox-cleanup validate-config -c /etc/proxmox-cleanup/config.json
+
+# Check logs
+tail -f /var/log/proxmox-cleanup/cleanup.log
+```
+
+### Debug Mode
+
+Enable verbose logging for troubleshooting:
 
 ```bash
-npm run build
+proxmox-cleanup cleanup --verbose -c /etc/proxmox-cleanup/config.json
 ```
 
-### Testing
+## 📊 Performance & Architecture
 
-```bash
-# Run all tests
-npm test
+### Performance Characteristics
 
-# Run with coverage
-npm run test:coverage
+- Parallel resource scanning
+- Efficient dependency checking
+- Minimal memory footprint
+- Optimized for large resource sets
 
-# Watch mode
-npm run test:watch
-```
+### Architecture Overview
 
-### Linting
-
-```bash
-npm run lint
-```
-
-## Architecture
-
-```
+```text
 proxmox-cleanup/
 ├── src/
 │   ├── types/           # TypeScript type definitions
@@ -419,19 +441,19 @@ proxmox-cleanup/
 └── README.md           # This file
 ```
 
-## Testing Strategy
+### Testing Strategy
 
-### Property-Based Testing
+**Property-Based Testing**
 
 Uses `fast-check` to test universal properties with 100+ random inputs:
 
-- **Resource identification completeness**
-- **Safe removal guarantee**
-- **Backup completeness**
-- **Size calculation accuracy**
-- **Report consistency**
+- Resource identification completeness
+- Safe removal guarantee
+- Backup completeness
+- Size calculation accuracy
+- Report consistency
 
-### Unit Testing
+**Unit Testing**
 
 Comprehensive unit tests for all components:
 
@@ -440,28 +462,61 @@ Comprehensive unit tests for all components:
 - Error handling and edge cases
 - CLI argument parsing
 
-## Error Handling
-
-- Graceful handling of Docker daemon failures
-- Network error recovery with exponential backoff
-- Partial cleanup continuation on individual failures
-- Comprehensive error logging and reporting
-
-## Performance
-
-- Parallel resource scanning
-- Efficient dependency checking
-- Minimal memory footprint
-- Optimized for large resource sets
-
-## Security
+### Security Features
 
 - No sensitive data in logs
 - Secure token handling
 - Input validation and sanitization
 - Principle of least privilege
 
-## Contributing
+### Error Handling
+
+- Graceful handling of Docker daemon failures
+- Network error recovery with exponential backoff
+- Partial cleanup continuation on individual failures
+- Comprehensive error logging and reporting
+
+### Development Commands
+
+```bash
+# Build
+npm run build
+
+# Run all tests
+npm test
+
+# Run with coverage
+npm run test:coverage
+
+# Watch mode
+npm run test:watch
+
+# Linting
+npm run lint
+```
+
+## 📚 Resources
+
+- [Docker Documentation](https://docs.docker.com/)
+- [Proxmox VE Documentation](https://pve.proxmox.com/wiki/Main_Page)
+- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
+- [fast-check Property Testing](https://github.com/dubzzz/fast-check)
+
+## 🆘 Support
+
+For issues and questions:
+
+1. Check the [documentation](#-features)
+2. Run `proxmox-cleanup validate-config` to test setup
+3. Use `--verbose` flag for detailed logging
+4. Check logs in the configured log directory
+5. Open an issue on [GitHub](https://github.com/hiall-fyi/proxmox-cleanup/issues)
+
+## 📄 License
+
+MIT License - see LICENSE file for details.
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -469,19 +524,11 @@ Comprehensive unit tests for all components:
 4. Ensure all tests pass
 5. Submit a pull request
 
-## License
+## ⭐ Star History
 
-MIT License - see LICENSE file for details.
+If you find this tool useful, please consider giving it a star!
 
-## Support
-
-For issues and questions:
-
-1. Check the documentation
-2. Run `proxmox-cleanup validate-config` to test setup
-3. Use `--verbose` flag for detailed logging
-4. Check logs in the configured log directory
-5. Open an issue on [GitHub](https://github.com/hiall-fyi/proxmox-cleanup/issues)
+[![Star History Chart](https://api.star-history.com/svg?repos=hiall-fyi/proxmox-cleanup&type=Date)](https://star-history.com/#hiall-fyi/proxmox-cleanup&Date)
 
 ---
 
