@@ -524,6 +524,8 @@ MIT License - see LICENSE file for details.
 4. Ensure all tests pass
 5. Submit a pull request
 
+---
+
 ## ⭐ Star History
 
 If you find this tool useful, please consider giving it a star!
@@ -549,16 +551,6 @@ If this tool saved you time and disk space, consider buying me a coffee!
 **Version**: 1.0.0  
 **Last Updated**: 2025-01-04  
 **Tested On**: Proxmox VE 8.x with Docker 24.x
-
----
-
-## ⭐ Star History
-
-If you find this tool useful, please consider giving it a star!
-
-[![Star History Chart](https://api.star-history.com/svg?repos=hiall-fyi/proxmox-cleanup&type=Date)](https://star-history.com/#hiall-fyi/proxmox-cleanup&Date)
-
----
 
 ## Changelog
 
