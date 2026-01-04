@@ -503,6 +503,16 @@ If this tool saved you time and disk space, consider buying me a coffee!
 **Last Updated**: 2025-01-04  
 **Tested On**: Proxmox VE 8.x with Docker 24.x
 
+---
+
+## ⭐ Star History
+
+If you find this tool useful, please consider giving it a star!
+
+[![Star History Chart](https://api.star-history.com/svg?repos=hiall-fyi/proxmox-cleanup&type=Date)](https://star-history.com/#hiall-fyi/proxmox-cleanup&Date)
+
+---
+
 ## Changelog
 
 See `CHANGELOG.md` for version history and changes.
