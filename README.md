@@ -1,6 +1,8 @@
 # 🧹 Proxmox Cleanup Tool
 
-[![Tests](https://img.shields.io/badge/tests-157%20passing-brightgreen)](https://github.com/busyass/proxmox-cleanup)
+<div align="center">
+
+[![Tests](https://img.shields.io/badge/tests-157%20passing-brightgreen)](https://github.com/hiall-fyi/proxmox-cleanup)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-supported-blue)](https://www.docker.com/)
@@ -9,8 +11,20 @@
 
 🚀 **One-line installation**: 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/busyass/proxmox-cleanup/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hiall-fyi/proxmox-cleanup/main/scripts/install.sh | bash
 ```
+
+---
+
+### 🎯 Created by [@hiall-fyi](https://github.com/hiall-fyi)
+
+<a href="https://buymeacoffee.com/hiallfyi" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >
+</a>
+
+*If this tool saves you time and disk space, consider buying me a coffee! ☕*
+
+</div>
 
 ## ✨ Why Proxmox Cleanup?
 
@@ -467,6 +481,27 @@ For issues and questions:
 2. Run `proxmox-cleanup validate-config` to test setup
 3. Use `--verbose` flag for detailed logging
 4. Check logs in the configured log directory
+5. Open an issue on [GitHub](https://github.com/hiall-fyi/proxmox-cleanup/issues)
+
+---
+
+<div align="center">
+
+### 💖 Support This Project
+
+If this tool saved you time and disk space, consider buying me a coffee!
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/hiallfyi)
+
+**Made with ❤️ by [@hiall-fyi](https://github.com/hiall-fyi)**
+
+</div>
+
+---
+
+**Version**: 1.0.0  
+**Last Updated**: 2025-01-04  
+**Tested On**: Proxmox VE 8.x with Docker 24.x
 
 ## Changelog
 
