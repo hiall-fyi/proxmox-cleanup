@@ -555,3 +555,5 @@ If this tool saved you time and disk space, consider buying me a coffee!
 ## Changelog
 
 See `CHANGELOG.md` for version history and changes.
+
+
