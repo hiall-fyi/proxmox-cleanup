@@ -1,11 +1,12 @@
 #!/bin/bash
-# Proxmox Cleanup - GitHub Installation Script
-# Usage: curl -fsSL https://raw.githubusercontent.com/busyass/proxmox-cleanup/main/scripts/install.sh | bash
+# Proxmox Cleanup - Installation Script
+# Usage: curl -fsSL https://raw.githubusercontent.com/hiall-fyi/proxmox-cleanup/main/scripts/install.sh | bash
 
-set -e
+# Exit on error, but with cleanup
+set -eE
 
 # Configuration
-REPO_URL="https://github.com/busyass/proxmox-cleanup.git"
+REPO_URL="https://github.com/hiall-fyi/proxmox-cleanup.git"
 INSTALL_DIR="/opt/proxmox-cleanup"
 CONFIG_DIR="/etc/proxmox-cleanup"
 LOG_DIR="/var/log/proxmox-cleanup"
@@ -16,7 +17,30 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
+
+# Track installation state for cleanup
+INSTALLATION_STARTED=false
+REPO_CLONED=false
+GLOBALLY_INSTALLED=false
+
+# Cleanup on failure
+cleanup_on_failure() {
+    local exit_code=$?
+    if [ $exit_code -ne 0 ] && [ "$INSTALLATION_STARTED" = true ]; then
+        log_error "Installation failed with exit code $exit_code"
+        log_info "Cleaning up..."
+        
+        # Remove global installation if it was just installed
+        if [ "$GLOBALLY_INSTALLED" = true ]; then
+            npm uninstall -g proxmox-cleanup 2>/dev/null || true
+        fi
+        
+        log_info "Cleanup completed. You can retry the installation."
+    fi
+}
+
+trap cleanup_on_failure ERR EXIT
 
 # Logging functions
 log_info() {
@@ -39,6 +63,7 @@ log_error() {
 check_root() {
     if [[ $EUID -ne 0 ]]; then
         log_error "This script must be run as root"
+        log_info "Usage: sudo bash install.sh"
         exit 1
     fi
 }
@@ -50,22 +75,33 @@ check_prerequisites() {
     # Check Node.js
     if ! command -v node &> /dev/null; then
         log_warning "Node.js not found. Installing..."
-        apt update
-        apt install -y nodejs npm
-        log_success "Node.js installed"
-    else
-        NODE_VERSION=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
-        if [ "$NODE_VERSION" -lt 18 ]; then
-            log_error "Node.js version 18+ required. Current: $(node --version)"
+        if ! apt update; then
+            log_error "Failed to update apt repositories"
             exit 1
         fi
-        log_success "Node.js $(node --version) found"
+        if ! apt install -y nodejs npm; then
+            log_error "Failed to install Node.js"
+            exit 1
+        fi
+        log_success "Node.js installed"
     fi
+    
+    # Verify Node.js version
+    NODE_VERSION=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
+    if [ "$NODE_VERSION" -lt 18 ]; then
+        log_error "Node.js version 18+ required. Current: $(node --version)"
+        log_info "Please upgrade Node.js: https://nodejs.org/"
+        exit 1
+    fi
+    log_success "Node.js $(node --version) found"
     
     # Check Git
     if ! command -v git &> /dev/null; then
         log_warning "Git not found. Installing..."
-        apt install -y git
+        if ! apt install -y git; then
+            log_error "Failed to install Git"
+            exit 1
+        fi
         log_success "Git installed"
     else
         log_success "Git $(git --version | cut -d' ' -f3) found"
@@ -76,15 +112,16 @@ check_prerequisites() {
         log_error "Docker not found. Please install Docker first."
         log_info "Install Docker: https://docs.docker.com/engine/install/"
         exit 1
-    else
-        log_success "Docker $(docker --version | cut -d' ' -f3 | cut -d',' -f1) found"
     fi
+    log_success "Docker $(docker --version | cut -d' ' -f3 | cut -d',' -f1) found"
     
     # Check if Docker daemon is running
     if ! docker ps &> /dev/null; then
         log_error "Docker daemon is not running. Please start Docker first."
+        log_info "Start Docker: sudo systemctl start docker"
         exit 1
     fi
+    log_success "Docker daemon is running"
 }
 
 # Clone or update repository
@@ -97,16 +134,29 @@ setup_repository() {
         
         # Backup current config if exists
         if [ -f "$CONFIG_DIR/config.json" ]; then
-            cp "$CONFIG_DIR/config.json" "$CONFIG_DIR/config.json.backup.$(date +%Y%m%d_%H%M%S)"
-            log_info "Backed up existing configuration"
+            local backup_file="$CONFIG_DIR/config.json.backup.$(date +%Y%m%d_%H%M%S)"
+            cp "$CONFIG_DIR/config.json" "$backup_file"
+            log_info "Backed up existing configuration to $backup_file"
         fi
         
-        git pull origin main
+        # Reset any local changes to avoid conflicts
+        git reset --hard HEAD
+        git clean -fd
+        
+        # Pull latest changes
+        if ! git pull origin main; then
+            log_error "Failed to update repository"
+            exit 1
+        fi
         log_success "Repository updated"
     else
         log_info "Cloning repository..."
-        git clone "$REPO_URL" "$INSTALL_DIR"
+        if ! git clone "$REPO_URL" "$INSTALL_DIR"; then
+            log_error "Failed to clone repository"
+            exit 1
+        fi
         cd "$INSTALL_DIR"
+        REPO_CLONED=true
         log_success "Repository cloned"
     fi
 }
@@ -120,17 +170,29 @@ build_project() {
     rm -rf node_modules/ dist/
     
     # Install dependencies
-    npm install
+    if ! npm install; then
+        log_error "Failed to install dependencies"
+        exit 1
+    fi
     log_success "Dependencies installed"
     
     # Build project
     log_info "Building project..."
-    npm run build
-    log_success "Project built"
+    if ! npm run build; then
+        log_error "Failed to build project"
+        exit 1
+    fi
     
-    # Run tests (optional, skip if fails)
+    # Verify build output
+    if [ ! -f "dist/cli/index.js" ]; then
+        log_error "Build succeeded but dist/cli/index.js not found"
+        exit 1
+    fi
+    log_success "Project built successfully"
+    
+    # Run tests (optional, don't fail on test errors)
     log_info "Running tests..."
-    if npm test; then
+    if npm test 2>/dev/null; then
         log_success "All tests passed"
     else
         log_warning "Some tests failed, but continuing installation"
@@ -142,34 +204,24 @@ install_globally() {
     log_info "Installing globally..."
     cd "$INSTALL_DIR"
     
-    # Ensure dist directory exists and is built
+    # Verify dist directory exists
     if [ ! -d "dist" ] || [ ! -f "dist/cli/index.js" ]; then
-        log_info "Building project for global installation..."
-        
-        # Ensure TypeScript is available for building
-        if ! command -v tsc &> /dev/null; then
-            log_info "TypeScript compiler not found globally, using local version..."
-            # Use npx to run local TypeScript
-            if ! npx tsc; then
-                log_error "Build failed. TypeScript compilation error."
-                exit 1
-            fi
-        else
-            if ! npm run build; then
-                log_error "Build failed. Cannot install globally without built files."
-                exit 1
-            fi
-        fi
+        log_error "Build output not found. Cannot install globally."
+        exit 1
     fi
     
     # Uninstall previous version if exists
     if npm list -g proxmox-cleanup &> /dev/null; then
+        log_info "Removing previous global installation..."
         npm uninstall -g proxmox-cleanup
-        log_info "Removed previous global installation"
     fi
     
-    # Install globally with --production flag to avoid dev dependencies
-    npm install -g . --production
+    # Install globally (without --production, dist is already built)
+    if ! npm install -g .; then
+        log_error "Failed to install globally"
+        exit 1
+    fi
+    GLOBALLY_INSTALLED=true
     log_success "Installed globally"
 }
 
@@ -178,9 +230,7 @@ setup_configuration() {
     log_info "Setting up configuration..."
     
     # Create directories
-    mkdir -p "$CONFIG_DIR"
-    mkdir -p "$LOG_DIR"
-    mkdir -p "$BACKUP_DIR"
+    mkdir -p "$CONFIG_DIR" "$LOG_DIR" "$BACKUP_DIR"
     
     # Set permissions
     chown root:root "$CONFIG_DIR" "$LOG_DIR" "$BACKUP_DIR"
@@ -188,11 +238,24 @@ setup_configuration() {
     
     # Copy example config if not exists
     if [ ! -f "$CONFIG_DIR/config.json" ]; then
+        if [ ! -f "$INSTALL_DIR/config.example.json" ]; then
+            log_error "config.example.json not found in repository"
+            exit 1
+        fi
+        
         cp "$INSTALL_DIR/config.example.json" "$CONFIG_DIR/config.json"
         
-        # Update paths in config
-        sed -i "s|\"./backups\"|\"$BACKUP_DIR\"|g" "$CONFIG_DIR/config.json"
-        sed -i "s|\"./logs\"|\"$LOG_DIR\"|g" "$CONFIG_DIR/config.json"
+        # Update paths in config (safer approach)
+        local temp_config=$(mktemp)
+        if jq --arg backup "$BACKUP_DIR" --arg logs "$LOG_DIR" \
+            '.cleanup.backupPath = $backup | .reporting.logPath = $logs' \
+            "$CONFIG_DIR/config.json" > "$temp_config" 2>/dev/null; then
+            mv "$temp_config" "$CONFIG_DIR/config.json"
+        else
+            # Fallback to sed if jq not available
+            sed -i "s|\"./backups\"|\"$BACKUP_DIR\"|g" "$CONFIG_DIR/config.json"
+            sed -i "s|\"./logs\"|\"$LOG_DIR\"|g" "$CONFIG_DIR/config.json"
+        fi
         
         # Secure config file
         chmod 600 "$CONFIG_DIR/config.json"
@@ -201,7 +264,7 @@ setup_configuration() {
         log_success "Created configuration file"
         log_warning "Please edit $CONFIG_DIR/config.json with your Proxmox settings!"
     else
-        log_info "Configuration file already exists"
+        log_info "Configuration file already exists (not overwriting)"
     fi
 }
 
@@ -224,8 +287,14 @@ fi
 
 cd "$INSTALL_DIR"
 
+# Save current version
+CURRENT_VERSION=$(proxmox-cleanup --version 2>/dev/null || echo "unknown")
+echo "📌 Current version: $CURRENT_VERSION"
+
 # Pull latest changes
 echo "📥 Pulling latest changes..."
+git reset --hard HEAD
+git clean -fd
 git pull origin main
 
 # Reinstall dependencies and rebuild
@@ -235,14 +304,29 @@ npm install
 echo "🔨 Building project..."
 npm run build
 
+# Verify build
+if [ ! -f "dist/cli/index.js" ]; then
+    echo "❌ Build failed - dist/cli/index.js not found"
+    exit 1
+fi
+
 # Reinstall globally
 echo "🌍 Reinstalling globally..."
 npm install -g .
 
+# Verify new version
+NEW_VERSION=$(proxmox-cleanup --version 2>/dev/null || echo "unknown")
 echo "✅ Update completed!"
+echo "📌 New version: $NEW_VERSION"
 
-# Verify
-proxmox-cleanup --version
+# Show what changed
+if [ "$CURRENT_VERSION" != "$NEW_VERSION" ]; then
+    echo ""
+    echo "🎉 Successfully updated from $CURRENT_VERSION to $NEW_VERSION"
+else
+    echo ""
+    echo "ℹ️  Version unchanged: $NEW_VERSION"
+fi
 EOF
     
     chmod +x /usr/local/bin/update-proxmox-cleanup
@@ -307,16 +391,19 @@ verify_installation() {
     fi
     
     # Check version
-    VERSION=$(proxmox-cleanup --version)
-    log_success "proxmox-cleanup $VERSION installed successfully"
+    local version
+    if ! version=$(proxmox-cleanup --version 2>&1); then
+        log_error "Failed to get version: $version"
+        exit 1
+    fi
+    log_success "proxmox-cleanup $version installed successfully"
     
     # Test basic functionality
-    if proxmox-cleanup --help &> /dev/null; then
-        log_success "Command line interface working"
-    else
+    if ! proxmox-cleanup --help &> /dev/null; then
         log_error "Command line interface not working"
         exit 1
     fi
+    log_success "Command line interface working"
 }
 
 # Display next steps
@@ -354,9 +441,11 @@ show_next_steps() {
 
 # Main installation function
 main() {
-    echo "🚀 Proxmox Cleanup - GitHub Installation"
-    echo "========================================"
+    echo "🚀 Proxmox Cleanup - Installation Script"
+    echo "========================================="
     echo ""
+    
+    INSTALLATION_STARTED=true
     
     check_root
     check_prerequisites
@@ -369,6 +458,9 @@ main() {
     setup_logrotate
     verify_installation
     show_next_steps
+    
+    # Installation succeeded, disable cleanup trap
+    trap - ERR EXIT
 }
 
 # Run main function

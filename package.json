@@ -1,6 +1,6 @@
 {
   "name": "proxmox-cleanup",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Automated cleanup tool for unused Docker resources on Proxmox infrastructure",
   "main": "dist/index.js",
   "bin": {

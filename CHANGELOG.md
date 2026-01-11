@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-01-11
+
+### Fixed
+- **Critical**: Fixed binary wrapper path resolution issue that caused "Cannot find module" error after global npm installation
+- **Critical**: Fixed installation script repository URL to use correct GitHub repository
+- Binary wrapper now correctly resolves CLI entry point using Node.js path resolution
+- Installation script now has comprehensive error handling and cleanup on failure
+- Git conflicts during updates now handled automatically
+- Build verification ensures complete build before global installation
+
+### Improved
+- Simplified binary wrapper implementation (more reliable and maintainable)
+- Rewrote installation script with proper error handling and rollback mechanism
+- Config file updates now use safer JSON manipulation methods
+- Update script now shows version information for better user feedback
+- Test failures no longer block installation (warning only)
+
+### Added
+- Automatic cleanup on installation failure
+- Build output verification before global installation
+- Version tracking in update script
+- Detailed error messages with context throughout installation process
+- Installation state tracking for proper cleanup
+
+### Technical Details
+- Binary wrapper now uses Node.js `__dirname` which correctly follows symlinks to resolve the CLI entry point path
+- Installation script includes `trap` mechanism for cleanup on failure
+- All critical commands now have proper error checking
+- Security improvements: proper file permissions (config: 600, directories: 755)
+
 ## [1.0.0] - 2026-01-02
 
 ### Added
@@ -49,11 +79,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parallel processing optimization
 
 ### Installation
-- One-line installation: `curl -fsSL https://raw.githubusercontent.com/busyass/proxmox-cleanup/main/scripts/install.sh | bash`
+- One-line installation script
 - Manual installation support
 - Global npm package installation
-- Systemd service setup
+- Systemd service integration
 - Configuration file creation
 - Log rotation setup
 
-[1.0.0]: https://github.com/busyass/proxmox-cleanup/releases/tag/v1.0.0
+[1.1.0]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.1.0
+[1.0.0]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.0.0

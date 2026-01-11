@@ -1,2 +1,10 @@
-#!/bin/bash
-exec node "$(dirname "$0")/../dist/cli/index.js" "$@"
+#!/usr/bin/env node
+
+// Simple and correct path resolution
+// When npm installs globally, __dirname is already inside the package at bin/
+// So ../dist/cli/index.js is the correct relative path
+const path = require('path');
+const cliPath = path.join(__dirname, '..', 'dist', 'cli', 'index.js');
+
+// Load and execute the CLI
+require(cliPath);

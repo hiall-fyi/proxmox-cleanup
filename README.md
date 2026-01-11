@@ -2,10 +2,12 @@
 
 <div align="center">
 
-[![Tests](https://img.shields.io/badge/tests-157%20passing-brightgreen)](https://github.com/hiall-fyi/proxmox-cleanup)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue)](https://www.typescriptlang.org/)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Docker](https://img.shields.io/badge/Docker-supported-blue)](https://www.docker.com/)
+![Tests](https://img.shields.io/badge/tests-157%20passing-brightgreen?style=for-the-badge)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue?style=for-the-badge&logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-supported-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Proxmox](https://img.shields.io/badge/Proxmox-VE-E57000?style=for-the-badge&logo=proxmox&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
 
 **Automated cleanup tool for unused Docker resources on Proxmox VE infrastructure**
 
@@ -548,8 +550,8 @@ If this tool saved you time and disk space, consider buying me a coffee!
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: 2025-01-04  
+**Version**: 1.1.0  
+**Last Updated**: 2026-01-11  
 **Tested On**: Proxmox VE 8.x with Docker 24.x
 
 ## Changelog
