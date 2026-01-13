@@ -3,10 +3,23 @@
 .eslintrc.js
 jest.config.js
 
-# Test files
+# Test files (source)
 src/**/__tests__/
 src/**/*.test.ts
 src/**/*.spec.ts
+
+# Test files (compiled)
+dist/**/__tests__/
+dist/**/*.test.js
+dist/**/*.test.d.ts
+dist/**/*.test.js.map
+dist/**/*.test.d.ts.map
+dist/**/*.spec.js
+dist/**/*.spec.d.ts
+dist/**/*.spec.js.map
+dist/**/*.spec.d.ts.map
+
+# Test coverage
 coverage/
 
 # Development scripts
