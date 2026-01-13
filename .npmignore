@@ -1,0 +1,44 @@
+# Development configuration files
+.eslintignore
+.eslintrc.js
+jest.config.js
+
+# Test files
+src/**/__tests__/
+src/**/*.test.ts
+src/**/*.spec.ts
+coverage/
+
+# Development scripts
+scripts/prepare-release.sh
+
+# Build artifacts (users should build themselves)
+dist/
+
+# Git files
+.git/
+.gitignore
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+
+# Documentation (optional - keep if users need)
+# docs/
+
+# Development logs
+RELEASE-FILES.txt
+*PUBLISH*.md
+*DEPLOYMENT*.md
+PROGRESS.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
