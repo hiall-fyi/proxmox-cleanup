@@ -548,14 +548,27 @@ If this tool saved you time and disk space, consider buying me a coffee!
 
 </div>
 
+
 ---
 
 **Version**: 1.1.0  
 **Last Updated**: 2026-01-11  
 **Tested On**: Proxmox VE 8.x with Docker 24.x
 
+---
+
+## ⚖️ Disclaimer
+
+This project is not affiliated with, endorsed by, or connected to Proxmox Server Solutions GmbH or Docker, Inc.
+
+- **Proxmox** and the Proxmox logo are registered trademarks of Proxmox Server Solutions GmbH.
+- **Docker** and the Docker logo are registered trademarks of Docker, Inc.
+- All product names, logos, and brands are property of their respective owners.
+
+This tool is provided "as is" without warranty of any kind. Use at your own risk. The authors are not responsible for any damages or issues arising from the use of this software, including but not limited to data loss, resource deletion, or system instability.
+
+This is an independent, community-developed project created to help Proxmox users manage Docker resources efficiently.
+
 ## Changelog
 
 See `CHANGELOG.md` for version history and changes.
-
-
