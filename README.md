@@ -18,7 +18,7 @@ curl -fsSL https://raw.githubusercontent.com/hiall-fyi/proxmox-cleanup/main/scri
 
 ---
 
-### 🎯 Created by [@hiall-fyi](https://github.com/hiall-fyi)
+### 🎯 Created by Joe Yiu ([@hiall-fyi](https://github.com/hiall-fyi))
 
 <a href="https://buymeacoffee.com/hiallfyi" target="_blank">
   <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >
@@ -544,7 +544,7 @@ If this tool saved you time and disk space, consider buying me a coffee!
 
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/hiallfyi)
 
-**Made with ❤️ by [@hiall-fyi](https://github.com/hiall-fyi)**
+**Made with ❤️ by Joe Yiu ([@hiall-fyi](https://github.com/hiall-fyi))**
 
 </div>
 
