@@ -167,6 +167,14 @@ export interface PruneResult {
   networksDeleted: number;
   spaceReclaimed: number;
 }
+
+/**
+ * Error detail for cleanup operations
+ */
+export interface CleanupErrorDetail {
+  resource: Resource;
+  error: string;
+}
 // Scheduling Types
 export interface ScheduleConfig {
   enabled: boolean;

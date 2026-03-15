@@ -57,7 +57,7 @@ export class DockerClient implements IDockerClient {
         id: container.Id,
         name: container.Names[0]?.replace(/^\//, '') || container.Id.substring(0, 12),
         type: 'container' as const,
-        size: (container as any).SizeRw || 0,
+        size: (container as Docker.ContainerInfo & { SizeRw?: number }).SizeRw || 0,
         createdAt: new Date(container.Created * 1000),
         tags: container.Labels ? Object.keys(container.Labels) : [],
         status: this.mapContainerStatus(container.State),
@@ -116,7 +116,7 @@ export class DockerClient implements IDockerClient {
         name: volume.Name,
         type: 'volume' as const,
         size: 0, // Docker API doesn't provide volume size directly
-        createdAt: new Date((volume as any).CreatedAt || Date.now()),
+        createdAt: new Date((volume as Docker.VolumeInspectInfo & { CreatedAt?: string }).CreatedAt || Date.now()),
         tags: volume.Labels ? Object.keys(volume.Labels) : [],
         mountPoint: volume.Mountpoint,
         usedByContainers: [] // Will be populated by scanner
@@ -161,8 +161,8 @@ export class DockerClient implements IDockerClient {
     try {
       const container = this.docker.getContainer(id);
       await container.remove({ force: true });
-    } catch (error: any) {
-      if (error.statusCode === 404) {
+    } catch (error: unknown) {
+      if ((error as { statusCode?: number }).statusCode === 404) {
         const cleanupError = this.createError('resource_not_found', `Container ${id} not found`, error);
         throw new Error(cleanupError.message);
       }
@@ -180,12 +180,13 @@ export class DockerClient implements IDockerClient {
     try {
       const image = this.docker.getImage(id);
       await image.remove({ force: true });
-    } catch (error: any) {
-      if (error.statusCode === 404) {
+    } catch (error: unknown) {
+      const statusCode = (error as { statusCode?: number }).statusCode;
+      if (statusCode === 404) {
         const cleanupError = this.createError('resource_not_found', `Image ${id} not found`, error);
         throw new Error(cleanupError.message);
       }
-      if (error.statusCode === 409) {
+      if (statusCode === 409) {
         const cleanupError = this.createError('resource_in_use', `Image ${id} is in use`, error);
         throw new Error(cleanupError.message);
       }
@@ -203,12 +204,13 @@ export class DockerClient implements IDockerClient {
     try {
       const volume = this.docker.getVolume(name);
       await volume.remove();
-    } catch (error: any) {
-      if (error.statusCode === 404) {
+    } catch (error: unknown) {
+      const statusCode = (error as { statusCode?: number }).statusCode;
+      if (statusCode === 404) {
         const cleanupError = this.createError('resource_not_found', `Volume ${name} not found`, error);
         throw new Error(cleanupError.message);
       }
-      if (error.statusCode === 409) {
+      if (statusCode === 409) {
         const cleanupError = this.createError('resource_in_use', `Volume ${name} is in use`, error);
         throw new Error(cleanupError.message);
       }
@@ -226,12 +228,13 @@ export class DockerClient implements IDockerClient {
     try {
       const network = this.docker.getNetwork(id);
       await network.remove();
-    } catch (error: any) {
-      if (error.statusCode === 404) {
+    } catch (error: unknown) {
+      const statusCode = (error as { statusCode?: number }).statusCode;
+      if (statusCode === 404) {
         const cleanupError = this.createError('resource_not_found', `Network ${id} not found`, error);
         throw new Error(cleanupError.message);
       }
-      if (error.statusCode === 409) {
+      if (statusCode === 409) {
         const cleanupError = this.createError('resource_in_use', `Network ${id} is in use`, error);
         throw new Error(cleanupError.message);
       }
@@ -293,10 +296,11 @@ export class DockerClient implements IDockerClient {
   /**
    * Create a standardized error object
    */
-  private createError(type: CleanupError['type'], message: string, originalError?: any): CleanupError {
+  private createError(type: CleanupError['type'], message: string, originalError?: unknown): CleanupError {
+    const errorMessage = originalError instanceof Error ? originalError.message : 'Unknown error';
     return {
       type,
-      message: `${message}: ${originalError?.message || 'Unknown error'}`,
+      message: `${message}: ${errorMessage}`,
       timestamp: new Date(),
       recoverable: type === 'network' || type === 'resource_not_found'
     };

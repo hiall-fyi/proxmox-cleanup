@@ -44,11 +44,12 @@ export class BackupManager implements IBackupManager {
         success: true,
         backupPath
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       return {
         success: false,
         backupPath: '',
-        error: `Failed to create backup: ${error.message}`
+        error: `Failed to create backup: ${message}`
       };
     }
   }
@@ -60,8 +61,9 @@ export class BackupManager implements IBackupManager {
     try {
       const jsonContent = JSON.stringify(backup, null, 2);
       await fs.writeFile(filePath, jsonContent, 'utf-8');
-    } catch (error: any) {
-      throw new Error(`Failed to save backup to ${filePath}: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to save backup to ${filePath}: ${message}`);
     }
   }
 
@@ -77,15 +79,16 @@ export class BackupManager implements IBackupManager {
       backup.timestamp = new Date(backup.timestamp);
 
       // Convert resource createdAt strings back to Dates
-      backup.resources = backup.resources.map((r: any) => ({
+      backup.resources = backup.resources.map((r: Record<string, unknown>) => ({
         ...r,
-        createdAt: new Date(r.createdAt),
-        lastUsed: r.lastUsed ? new Date(r.lastUsed) : undefined
+        createdAt: new Date(r.createdAt as string),
+        lastUsed: r.lastUsed ? new Date(r.lastUsed as string) : undefined
       }));
 
       return backup;
-    } catch (error: any) {
-      throw new Error(`Failed to load backup from ${filePath}: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to load backup from ${filePath}: ${message}`);
     }
   }
 
@@ -100,8 +103,9 @@ export class BackupManager implements IBackupManager {
         .filter(f => f.endsWith('.backup.json'))
         .sort()
         .reverse(); // Most recent first
-    } catch (error: any) {
-      throw new Error(`Failed to list backups: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to list backups: ${message}`);
     }
   }
 
@@ -112,8 +116,9 @@ export class BackupManager implements IBackupManager {
     try {
       const filePath = path.join(this.backupDirectory, filename);
       await fs.unlink(filePath);
-    } catch (error: any) {
-      throw new Error(`Failed to delete backup ${filename}: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to delete backup ${filename}: ${message}`);
     }
   }
 

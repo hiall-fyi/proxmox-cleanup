@@ -13,7 +13,7 @@
     "test:coverage": "jest --coverage",
     "lint": "eslint src --ext .ts",
     "start": "node dist/cli/index.js",
-    "prepare-release": "./scripts/prepare-release.sh"
+    "prepare-release": "echo 'TODO: create scripts/prepare-release.sh'"
   },
   "keywords": [
     "proxmox",
@@ -35,7 +35,6 @@
     "@types/jest": "^29.5.11",
     "@types/node": "^20.19.27",
     "@types/node-cron": "^3.0.11",
-    "@types/winston": "^2.4.4",
     "@typescript-eslint/eslint-plugin": "^6.17.0",
     "@typescript-eslint/parser": "^6.17.0",
     "eslint": "^8.56.0",

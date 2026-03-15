@@ -100,8 +100,8 @@ export class CleanupScheduler implements ICleanupScheduler {
     for (const [name, task] of this.scheduledTasks) {
       task.stop();
       // Note: destroy() method may not be available in all node-cron versions
-      if ('destroy' in task && typeof task.destroy === 'function') {
-        (task as any).destroy();
+      if ('destroy' in task && typeof (task as Record<string, unknown>).destroy === 'function') {
+        (task as unknown as { destroy: () => void }).destroy();
       }
       this.logger.info(`Stopped scheduled task: ${name}`);
     }
@@ -261,8 +261,8 @@ export class CleanupScheduler implements ICleanupScheduler {
 
           // Remove task after execution
           this.scheduledTasks.delete(taskName);
-          if ('destroy' in task && typeof task.destroy === 'function') {
-            (task as any).destroy();
+          if ('destroy' in task && typeof (task as Record<string, unknown>).destroy === 'function') {
+            (task as unknown as { destroy: () => void }).destroy();
           }
 
           this.logger.info(`One-time task completed and removed: ${taskName}`);
@@ -271,8 +271,8 @@ export class CleanupScheduler implements ICleanupScheduler {
 
           // Still remove the task even if it failed
           this.scheduledTasks.delete(taskName);
-          if ('destroy' in task && typeof task.destroy === 'function') {
-            (task as any).destroy();
+          if ('destroy' in task && typeof (task as Record<string, unknown>).destroy === 'function') {
+            (task as unknown as { destroy: () => void }).destroy();
           }
         }
       },

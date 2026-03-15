@@ -3,7 +3,8 @@ import {
   ImageResource,
   VolumeResource,
   NetworkResource,
-  Resource
+  Resource,
+  CleanupErrorDetail
 } from '../types';
 import { IResourceScanner } from '../interfaces';
 import { IDockerClient } from '../interfaces';
@@ -59,16 +60,6 @@ export class ResourceScanner implements IResourceScanner {
     // Get all images
     const allImages = await this.dockerClient.listImages();
 
-    // Build set of image IDs used by containers
-    const usedImageIds = new Set(
-      this.allContainers.map(container => container.imageId)
-    );
-
-    // Filter for unused images
-    const _unusedImages = allImages.filter(image => {
-      return !usedImageIds.has(image.id);
-    });
-
     // Populate usedByContainers for all images
     const imagesWithUsage = allImages.map(image => ({
       ...image,
@@ -102,11 +93,6 @@ export class ResourceScanner implements IResourceScanner {
           usedVolumeNames.add(volumeName);
         }
       });
-    });
-
-    // Filter for unused volumes
-    const _unusedVolumes = allVolumes.filter(volume => {
-      return !usedVolumeNames.has(volume.name);
     });
 
     // Populate usedByContainers for all volumes
@@ -185,10 +171,10 @@ export class ResourceScanner implements IResourceScanner {
    * Perform cleanup operation with dry-run support
    * In dry-run mode, no actual removal occurs
    */
-  async performCleanup(resources: Resource[]): Promise<{ removed: Resource[], skipped: Resource[], errors: any[] }> {
+  async performCleanup(resources: Resource[]): Promise<{ removed: Resource[], skipped: Resource[], errors: CleanupErrorDetail[] }> {
     const removed: Resource[] = [];
     const skipped: Resource[] = [];
-    const errors: any[] = [];
+    const errors: CleanupErrorDetail[] = [];
 
     for (const resource of resources) {
       try {

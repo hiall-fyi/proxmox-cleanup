@@ -304,7 +304,7 @@ describe('CleanupScheduler', () => {
       await scheduler.scheduleOneTime('0 15 * * *', 'test-task');
 
       // Get the scheduled function and execute it
-      const scheduledFunction = mockCron.schedule.mock.calls[0][1] as Function;
+      const scheduledFunction = mockCron.schedule.mock.calls[0][1] as () => Promise<void>;
       await scheduledFunction();
 
       // Task should be removed after execution

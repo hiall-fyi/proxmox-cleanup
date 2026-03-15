@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-03-15
+
+### Removed
+- Deleted dead CLI stub file `src/cli.ts` (real CLI is at `src/cli/index.ts`)
+- Removed deprecated `@types/winston` dependency (winston v3+ ships its own types)
+- Removed `.DS_Store` files from repository
+
+### Fixed
+- Fixed `prepare-release` npm script pointing to non-existent `scripts/prepare-release.sh`
+
+### Added
+- Added project-level `.gitignore` for `node_modules/`, `dist/`, `logs/`, `backups/`, `config.json`, coverage, and `.env`
+
 ## [1.1.0] - 2026-01-11
 
 ### Fixed
@@ -86,5 +99,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configuration file creation
 - Log rotation setup
 
+[1.1.1]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.1.1
 [1.1.0]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.1.0
 [1.0.0]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.0.0

@@ -1,113 +1,62 @@
-# 🧹 Proxmox Cleanup Tool
+# Proxmox Cleanup - Automated Docker Resource Cleanup for Proxmox VE
 
 <div align="center">
 
-![Tests](https://img.shields.io/badge/tests-157%20passing-brightgreen?style=for-the-badge)
+<!-- Platform Badges -->
+![Proxmox](https://img.shields.io/badge/Proxmox-VE%208.x-E57000?style=for-the-badge&logo=proxmox&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue?style=for-the-badge&logo=typescript&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-supported-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Proxmox](https://img.shields.io/badge/Proxmox-VE-E57000?style=for-the-badge&logo=proxmox&logoColor=white)
-![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
+![Docker](https://img.shields.io/badge/Docker-24.x-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-**Automated cleanup tool for unused Docker resources on Proxmox VE infrastructure**
+<!-- Status Badges -->
+![Version](https://img.shields.io/badge/Version-1.1.1-purple?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
+![Tests](https://img.shields.io/badge/Tests-157%20passing-brightgreen?style=for-the-badge)
 
-🚀 **One-line installation**: 
-```bash
-curl -fsSL https://raw.githubusercontent.com/hiall-fyi/proxmox-cleanup/main/scripts/install.sh | bash
-```
+<!-- Community Badges -->
+![GitHub stars](https://img.shields.io/github/stars/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github)
+![GitHub forks](https://img.shields.io/github/forks/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github)
+![GitHub issues](https://img.shields.io/github/issues/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github)
+![GitHub last commit](https://img.shields.io/github/last-commit/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github)
 
----
+<!-- Support -->
+[![Buy Me A Coffee](https://img.shields.io/badge/Support-Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/hiallfyi)
 
-### 🎯 Created by Joe Yiu ([@hiall-fyi](https://github.com/hiall-fyi))
+**Automated cleanup tool for unused Docker resources on Proxmox VE infrastructure.**
 
-<a href="https://buymeacoffee.com/hiallfyi" target="_blank">
-  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >
-</a>
+**Made with ❤️ by Joe Yiu ([@hiall-fyi](https://github.com/hiall-fyi))**
 
-*If this tool saves you time and disk space, consider buying me a coffee! ☕*
+[Quick Start](#quick-start) • [Features](#features) • [Configuration](#configuration) • [CLI Reference](#cli-commands-reference) • [Troubleshooting](#troubleshooting)
 
 </div>
 
-## 🎯 Features
+---
 
-- 🔄 **Automated Docker cleanup** - Remove unused containers, images, volumes, and networks
-- 🛡️ **Safe & Smart** - Backup before cleanup, dry-run mode, resource protection
-- ⚡ **Production Ready** - 157 tests, comprehensive error handling, logging
-- 🎯 **Proxmox Optimized** - Designed specifically for Proxmox VE environments
-- 📅 **Scheduled Cleanup** - Set it and forget it with cron scheduling
-- 🔔 **Notifications** - Webhook notifications for cleanup results
-- 🐳 **Docker Resource Management** - Automatically identifies and removes unused containers, images, volumes, and networks
-- 💾 **Backup System** - Automatic backup of resource metadata before cleanup
-- 📊 **Comprehensive Reporting** - Detailed reports with disk space calculations and execution metrics
-- 🖥️ **CLI Interface** - Full-featured command-line interface with multiple commands
-- 🧪 **Property-Based Testing** - Comprehensive test suite with 100+ iterations per property
-- ⏰ **Scheduling** - Automated cleanup with cron expressions
-- 🛡️ **Safety First** - Protected resource patterns, dependency checking, and dry-run mode
+## Why Proxmox Cleanup?
 
-### 📸 Real-World Results
+Running Docker on Proxmox VE means unused containers, images, volumes, and networks pile up over time — eating disk space and cluttering your environment. Proxmox Cleanup automates the identification and removal of these unused resources with safety-first design: backups before deletion, dry-run previews, protected resource patterns, and dependency checking.
 
-Here's what proxmox-cleanup found and cleaned on a production Proxmox VE server:
+One-line install, schedule it with cron, and forget about it.
 
-![Cleanup Results Demo](docs/images/cleanup-results-demo.png)
-*Screenshot showing actual cleanup results: 38 resources scanned, 1.02 GB freed*
+---
 
-**Results Summary:**
+## Quick Start
 
-- 📊 **Resources Scanned**: 38 unused Docker resources
-- 🗑️ **Resources Cleaned**: 38 items (100% success rate)
-- 💾 **Disk Space Freed**: 1.02 GB
-- ⏱️ **Execution Time**: 2.3 seconds
-- 🛡️ **Safety**: All operations logged and backed up
+**Prerequisites:** Node.js 18+, npm, Docker daemon running, Proxmox VE (optional for Proxmox integration).
 
-The tool successfully identified and cleaned:
-
-- Unused Docker volumes (including large GitLab data: 512MB)
-- Orphaned runner cache volumes (367MB+ total)
-- Unused Docker networks
-- Various temporary volumes and build artifacts
-
-## 📋 Prerequisites
-
-- Node.js 18+ and npm
-- Docker daemon running
-- Proxmox VE (optional, for Proxmox integration)
-
-## 🚀 Quick Start
-
-### One-Line Installation
+### 1. Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/hiall-fyi/proxmox-cleanup/main/scripts/install.sh | bash
 ```
 
-The installation script will automatically:
-
-- Install Node.js and dependencies
-- Build the project
-- Set up global CLI command
-- Create configuration files
-- Set up systemd service
-- Configure log rotation
+The installer handles Node.js dependencies, build, global CLI setup, systemd service, config files, and log rotation.
 
 ![Installation Success](docs/images/installation-success.png)
-*Screenshot showing successful installation with all components properly configured*
+*Successful installation with all components configured*
 
-### Basic Usage
-
-```bash
-# 1. Configure
-nano /etc/proxmox-cleanup/config.json
-
-# 2. Test (Dry Run)
-proxmox-cleanup dry-run -c /etc/proxmox-cleanup/config.json
-
-# 3. Clean Up
-proxmox-cleanup cleanup -c /etc/proxmox-cleanup/config.json
-```
-
-## 🔧 Installation Methods
-
-### Install from Source
+<details>
+<summary>Install from Source</summary>
 
 ```bash
 git clone https://github.com/hiall-fyi/proxmox-cleanup.git
@@ -115,16 +64,71 @@ cd proxmox-cleanup
 npm install
 npm run build
 ```
+</details>
 
-### Global Installation
+<details>
+<summary>Global npm Install</summary>
 
 ```bash
 npm install -g proxmox-cleanup
 ```
+</details>
 
-## 🔧 Configuration
+### 2. Configure
 
-### Configuration File
+```bash
+nano /etc/proxmox-cleanup/config.json
+```
+
+### 3. Test (Dry Run)
+
+```bash
+proxmox-cleanup dry-run -c /etc/proxmox-cleanup/config.json
+```
+
+### 4. Clean Up
+
+```bash
+proxmox-cleanup cleanup -c /etc/proxmox-cleanup/config.json
+```
+
+### 5. Verify
+
+![Cleanup Results Demo](docs/images/cleanup-results-demo.png)
+*Real-world results: 38 resources scanned, 1.02 GB freed in 2.3 seconds*
+
+---
+
+## Features
+
+- **Automated Docker Cleanup** — Remove unused containers, images, volumes, and networks in one command
+- **Safety First** — Backup before cleanup, dry-run mode, protected resource patterns, dependency checking
+- **Production Ready** — 157 tests with property-based testing, comprehensive error handling, logging
+- **Proxmox Optimized** — Designed specifically for Proxmox VE environments
+- **Scheduled Cleanup** — Set it and forget it with cron expressions
+- **Notifications** — Webhook notifications for cleanup results
+- **Comprehensive Reporting** — Detailed reports with disk space calculations and execution metrics
+- **CLI Interface** — Full-featured command-line interface with multiple commands
+
+### Resource Types
+
+| Type | What Gets Cleaned |
+|------|-------------------|
+| containers | Stopped or exited containers |
+| images | Images not used by any container |
+| volumes | Volumes not mounted by any container |
+| networks | Networks with no connected containers (excluding defaults) |
+
+### Safety Features
+
+- **Dependency Checking** — Containers using images, volumes mounted by containers, and networks with connections are all protected
+- **Protected Resources** — System networks (bridge, host, none), resources matching protection patterns, tagged resources
+- **Backup System** — Automatic backup of resource metadata (names, IDs, sizes, dependencies) before cleanup
+- **Dry-Run Mode** — Preview all operations without making changes; identical results across multiple runs
+
+---
+
+## Configuration
 
 Create a `config.json` file (see `config.example.json`):
 
@@ -161,22 +165,48 @@ Create a `config.json` file (see `config.example.json`):
 }
 ```
 
-### CLI Options
+All configuration options can be overridden via CLI flags.
 
-All configuration options can be overridden via CLI:
+### Scheduling
 
-```bash
-proxmox-cleanup cleanup \
-  --config ./config.json \
-  --types containers,images \
-  --protect "important-*,system-*" \
-  --backup-path ./custom-backups \
-  --verbose \
-  --proxmox-host proxmox.local \
-  --proxmox-token "root@pam:token"
+Automate cleanup with cron expressions:
+
+| Pattern | Schedule |
+|---------|----------|
+| `0 2 * * *` | Daily at 2 AM |
+| `0 */6 * * *` | Every 6 hours |
+| `0 0 * * 0` | Weekly on Sunday |
+| `0 0 1 * *` | Monthly on 1st |
+
+### Notifications
+
+Webhook notifications for cleanup results:
+
+```json
+{
+  "notifications": {
+    "enabled": true,
+    "webhookUrl": "https://your-webhook.com/cleanup",
+    "onSuccess": true,
+    "onFailure": true
+  }
+}
 ```
 
-## 📚 CLI Commands Reference
+Email and Slack integrations are implemented as placeholders — extend the `NotificationService` class to add actual implementations.
+
+### Protection Patterns
+
+Protect resources from cleanup using patterns:
+
+- **Wildcards**: `important-*`, `*-production`, `*-system-*`
+- **Exact names**: `my-important-container`
+- **Tags**: Resources with specific tags
+- **IDs**: Exact resource IDs
+
+---
+
+## CLI Commands Reference
 
 ### `cleanup`
 
@@ -223,15 +253,12 @@ Options:
 Validate configuration file and test connections.
 
 ```bash
-proxmox-cleanup validate-config [options]
-
-Options:
-  -c, --config <path>              Configuration file to validate
+proxmox-cleanup validate-config -c /etc/proxmox-cleanup/config.json
 ```
 
-## 📖 Usage Examples
+---
 
-### Dry Run (Preview Mode)
+## Usage Examples
 
 ```bash
 # Preview what would be removed
@@ -239,191 +266,23 @@ proxmox-cleanup dry-run
 
 # Preview specific resource types
 proxmox-cleanup dry-run --types containers,images
-```
 
-### Actual Cleanup
-
-```bash
 # Clean all unused resources with backup
 proxmox-cleanup cleanup
 
 # Clean specific types without backup
 proxmox-cleanup cleanup --types volumes --no-backup
-```
 
-### List Unused Resources
+# List all unused resources sorted by size
+proxmox-cleanup list --sort-by-size
 
-```bash
-# List all unused resources
-proxmox-cleanup list
-
-# List specific types sorted by size
-proxmox-cleanup list --types images --sort-by-size
-```
-
-## 📊 Advanced Topics
-
-### Resource Types
-
-- **containers**: Stopped or exited containers
-- **images**: Images not used by any container
-- **volumes**: Volumes not mounted by any container
-- **networks**: Networks with no connected containers (excluding defaults)
-
-### Protection Patterns
-
-Protect resources from cleanup using patterns:
-
-- **Wildcards**: `important-*`, `*-production`, `*-system-*`
-- **Exact names**: `my-important-container`
-- **Tags**: Resources with specific tags
-- **IDs**: Exact resource IDs
-
-### Backup System
-
-Before cleanup, the system creates backups containing:
-
-- Resource metadata (names, IDs, sizes, creation dates)
-- Dependency information
-- Timestamp and system information
-- JSON format for easy parsing
-
-Backup files are stored in the configured backup directory with timestamps.
-
-### Scheduling & Automation
-
-Automate cleanup with cron expressions:
-
-```json
-{
-  "scheduling": {
-    "enabled": true,
-    "cronExpression": "0 2 * * *",  // Daily at 2 AM
-    "dryRun": false,
-    "timezone": "UTC"
-  }
-}
-```
-
-Common cron patterns:
-
-- `0 2 * * *` - Daily at 2 AM
-- `0 */6 * * *` - Every 6 hours
-- `0 0 * * 0` - Weekly on Sunday
-- `0 0 1 * *` - Monthly on 1st
-
-### Notifications
-
-Get notified about cleanup results:
-
-**Webhook Notifications**
-
-```json
-{
-  "notifications": {
-    "enabled": true,
-    "webhookUrl": "https://your-webhook.com/cleanup",
-    "onSuccess": true,
-    "onFailure": true
-  }
-}
-```
-
-**Email & Slack (Placeholder)**
-
-Email and Slack integrations are implemented as placeholders. Extend the `NotificationService` class to add actual implementations.
-
-### Safety Features
-
-**Dependency Checking**
-
-- Containers using images are protected
-- Volumes mounted by containers are protected
-- Networks with connected containers are protected
-- Stopped containers with restart policies are protected
-
-**Protected Resources**
-
-- System networks (bridge, host, none)
-- Resources matching protection patterns
-- Resources with specific tags or IDs
-
-**Dry-Run Mode**
-
-- Preview all operations without making changes
-- Identical results across multiple runs
-- Safe for testing and validation
-
-### Reporting & Monitoring
-
-**Summary Reports**
-
-```text
-🧹 CLEANUP REPORT
-==================================================
-📊 Resources Scanned: 25
-🗑️ Resources Removed: 12
-💾 Disk Space Freed: 2.5 GB
-⏱️ Execution Time: 1500ms
-==================================================
-```
-
-**Detailed Reports**
-
-- JSON reports with full resource details
-- Text summaries for human reading
-- Execution logs with timestamps
-- Success/failure rates
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**Docker daemon not running**
-```bash
-# Check Docker status
-systemctl status docker
-
-# Start Docker
-systemctl start docker
-```
-
-**Permission denied errors**
-```bash
-# Add user to docker group
-sudo usermod -aG docker $USER
-
-# Re-login or run
-newgrp docker
-```
-
-**Configuration validation failed**
-```bash
-# Validate config file
-proxmox-cleanup validate-config -c /etc/proxmox-cleanup/config.json
-
-# Check logs
-tail -f /var/log/proxmox-cleanup/cleanup.log
-```
-
-### Debug Mode
-
-Enable verbose logging for troubleshooting:
-
-```bash
+# Verbose mode for troubleshooting
 proxmox-cleanup cleanup --verbose -c /etc/proxmox-cleanup/config.json
 ```
 
-## 📊 Performance & Architecture
+---
 
-### Performance Characteristics
-
-- Parallel resource scanning
-- Efficient dependency checking
-- Minimal memory footprint
-- Optimized for large resource sets
-
-### Architecture Overview
+## Architecture
 
 ```text
 proxmox-cleanup/
@@ -440,135 +299,101 @@ proxmox-cleanup/
 │   ├── orchestrators/   # Main workflow coordination
 │   └── cli/             # Command-line interface
 ├── config.example.json  # Example configuration
-└── README.md           # This file
+└── README.md
 ```
 
-### Testing Strategy
+### Testing
 
-**Property-Based Testing**
-
-Uses `fast-check` to test universal properties with 100+ random inputs:
-
-- Resource identification completeness
-- Safe removal guarantee
-- Backup completeness
-- Size calculation accuracy
-- Report consistency
-
-**Unit Testing**
-
-Comprehensive unit tests for all components:
-
-- API clients with mocked responses
-- Resource scanning with various scenarios
-- Error handling and edge cases
-- CLI argument parsing
-
-### Security Features
-
-- No sensitive data in logs
-- Secure token handling
-- Input validation and sanitization
-- Principle of least privilege
-
-### Error Handling
-
-- Graceful handling of Docker daemon failures
-- Network error recovery with exponential backoff
-- Partial cleanup continuation on individual failures
-- Comprehensive error logging and reporting
-
-### Development Commands
+Property-based testing with `fast-check` (100+ random inputs per property) covering resource identification, safe removal guarantees, backup completeness, size calculation accuracy, and report consistency. Plus comprehensive unit tests for all components.
 
 ```bash
-# Build
-npm run build
-
-# Run all tests
-npm test
-
-# Run with coverage
-npm run test:coverage
-
-# Watch mode
-npm run test:watch
-
-# Linting
-npm run lint
+npm test              # Run all tests
+npm run test:coverage # Run with coverage
+npm run build         # Build
+npm run lint          # Linting
 ```
 
-## 📚 Resources
+---
+
+## Troubleshooting
+
+<details>
+<summary>Docker daemon not running</summary>
+
+```bash
+systemctl status docker
+systemctl start docker
+```
+</details>
+
+<details>
+<summary>Permission denied errors</summary>
+
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+```
+</details>
+
+<details>
+<summary>Configuration validation failed</summary>
+
+```bash
+proxmox-cleanup validate-config -c /etc/proxmox-cleanup/config.json
+tail -f /var/log/proxmox-cleanup/cleanup.log
+```
+</details>
+
+For other issues, use `--verbose` flag for detailed logging, check logs in the configured log directory, or [open an issue on GitHub](https://github.com/hiall-fyi/proxmox-cleanup/issues).
+
+---
+
+## Resources
 
 - [Docker Documentation](https://docs.docker.com/)
 - [Proxmox VE Documentation](https://pve.proxmox.com/wiki/Main_Page)
 - [TypeScript Documentation](https://www.typescriptlang.org/docs/)
 - [fast-check Property Testing](https://github.com/dubzzz/fast-check)
 
-## 🆘 Support
+---
 
-For issues and questions:
+## License
 
-1. Check the [documentation](#-features)
-2. Run `proxmox-cleanup validate-config` to test setup
-3. Use `--verbose` flag for detailed logging
-4. Check logs in the configured log directory
-5. Open an issue on [GitHub](https://github.com/hiall-fyi/proxmox-cleanup/issues)
+**MIT License** — see [LICENSE](LICENSE) for full details.
 
-## 📄 License
-
-MIT License - see LICENSE file for details.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
+**Original Author:** Joe Yiu ([@hiall-fyi](https://github.com/hiall-fyi))
 
 ---
 
-## ⭐ Star History
+## Contributing
 
-If you find this tool useful, please consider giving it a star!
+Contributions welcome!
 
-[![Star History Chart](https://api.star-history.com/svg?repos=hiall-fyi/proxmox-cleanup&type=Date)](https://star-history.com/#hiall-fyi/proxmox-cleanup&Date)
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ---
 
 <div align="center">
 
-### 💖 Support This Project
-
-If this tool saved you time and disk space, consider buying me a coffee!
-
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/hiallfyi)
-
-**Made with ❤️ by Joe Yiu ([@hiall-fyi](https://github.com/hiall-fyi))**
+[![Star History Chart](https://api.star-history.com/svg?repos=hiall-fyi/proxmox-cleanup&type=Date)](https://star-history.com/#hiall-fyi/proxmox-cleanup&Date)
 
 </div>
 
+---
+
+<details>
+<summary>Disclaimer</summary>
+
+This project is not affiliated with, endorsed by, or connected to Proxmox Server Solutions GmbH or Docker, Inc. Proxmox and the Proxmox logo are registered trademarks of Proxmox Server Solutions GmbH. Docker and the Docker logo are registered trademarks of Docker, Inc. All product names, logos, and brands are property of their respective owners.
+
+This tool is provided "as is" without warranty of any kind. Use at your own risk.
+
+</details>
 
 ---
 
-**Version**: 1.1.0  
-**Last Updated**: 2026-01-11  
-**Tested On**: Proxmox VE 8.x with Docker 24.x
-
----
-
-## ⚖️ Disclaimer
-
-This project is not affiliated with, endorsed by, or connected to Proxmox Server Solutions GmbH or Docker, Inc.
-
-- **Proxmox** and the Proxmox logo are registered trademarks of Proxmox Server Solutions GmbH.
-- **Docker** and the Docker logo are registered trademarks of Docker, Inc.
-- All product names, logos, and brands are property of their respective owners.
-
-This tool is provided "as is" without warranty of any kind. Use at your own risk. The authors are not responsible for any damages or issues arising from the use of this software, including but not limited to data loss, resource deletion, or system instability.
-
-This is an independent, community-developed project created to help Proxmox users manage Docker resources efficiently.
-
-## Changelog
-
-See `CHANGELOG.md` for version history and changes.
+See [CHANGELOG.md](CHANGELOG.md) for version history.

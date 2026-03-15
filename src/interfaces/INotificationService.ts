@@ -6,7 +6,7 @@ export interface NotificationMessage {
   title: string;
   message: string;
   timestamp: Date;
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 /**

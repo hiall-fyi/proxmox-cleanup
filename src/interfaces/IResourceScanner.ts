@@ -3,7 +3,8 @@ import {
   ImageResource,
   VolumeResource,
   NetworkResource,
-  Resource
+  Resource,
+  CleanupErrorDetail
 } from '../types';
 
 /**
@@ -38,7 +39,7 @@ export interface IResourceScanner {
   /**
    * Perform cleanup operation with dry-run support
    */
-  performCleanup(resources: Resource[]): Promise<{ removed: Resource[], skipped: Resource[], errors: any[] }>;
+  performCleanup(resources: Resource[]): Promise<{ removed: Resource[], skipped: Resource[], errors: CleanupErrorDetail[] }>;
 
   /**
    * Get dry-run status

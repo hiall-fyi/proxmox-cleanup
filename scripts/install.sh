@@ -425,7 +425,7 @@ show_next_steps() {
     echo "   proxmox-cleanup cleanup -c $CONFIG_DIR/config.json"
     echo ""
     echo "📚 Documentation:"
-    echo "   - Installation guide: $INSTALL_DIR/INSTALL-GUIDE.md"
+    echo "   - Documentation: $INSTALL_DIR/README.md"
     echo "   - README: $INSTALL_DIR/README.md"
     echo ""
     echo "🔄 To update in the future:"

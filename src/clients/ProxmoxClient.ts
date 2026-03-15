@@ -202,7 +202,7 @@ export class ProxmoxClient implements IProxmoxClient {
     maxRetries: number = 3,
     baseDelay: number = 1000
   ): Promise<AxiosResponse<T>> {
-    let lastError: any;
+    let lastError: unknown;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
@@ -241,7 +241,7 @@ export class ProxmoxClient implements IProxmoxClient {
   /**
    * Create a standardized error object
    */
-  private createError(type: CleanupError['type'], message: string, originalError?: any): CleanupError {
+  private createError(type: CleanupError['type'], message: string, originalError?: unknown): CleanupError {
     let errorMessage = message;
 
     if (axios.isAxiosError(originalError)) {
@@ -256,7 +256,7 @@ export class ProxmoxClient implements IProxmoxClient {
       if (responseData?.errors) {
         errorMessage += ` - ${JSON.stringify(responseData.errors)}`;
       }
-    } else if (originalError?.message) {
+    } else if (originalError instanceof Error) {
       errorMessage += `: ${originalError.message}`;
     }
 
