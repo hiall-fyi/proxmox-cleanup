@@ -241,13 +241,6 @@ export class SizeCalculator {
   }
 
   /**
-   * Calculate actual disk space freed
-   */
-  calculateSpaceFreed(spaceBefore: number, spaceAfter: number): number {
-    return spaceAfter - spaceBefore;
-  }
-
-  /**
    * Verify predicted vs actual disk space freed (within 5% tolerance)
    */
   verifySpaceFreed(predicted: number, actual: number, tolerance: number = 0.05): boolean {

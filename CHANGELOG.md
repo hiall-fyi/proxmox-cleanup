@@ -5,100 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-04-03
+
+**Codebase audit & cleanup — same features, ~285 fewer lines of code.**
+
+### Improvements
+
+- **Smaller, cleaner codebase** — a full architecture audit identified and removed unused internal code across 18 files. Nothing you interact with has changed, but there's significantly less code to maintain behind the scenes.
+- **Consistent disk space formatting** — size numbers (like "1.2 GB freed") now come from one shared function instead of three separate copies, so you'll never see inconsistent formatting between the CLI, scheduler, and reports.
+- **`--version` now stays in sync** — the version shown by `proxmox-cleanup --version` is read directly from the package, so it always matches the installed version. Previously it was stuck on `1.0.0`.
+
+### Bug Fixes
+
+- **Fixed `--version` showing wrong number** — `proxmox-cleanup --version` was hardcoded to `1.0.0` regardless of the actual installed version. It now correctly reports the real version.
+- **Fixed a duplicate log entry** — the cleanup log was writing a "starting operation" line twice at the beginning of each run. Now it logs once, with the correct resource count.
+
 ## [1.1.1] - 2026-03-15
 
-### Removed
-- Deleted dead CLI stub file `src/cli.ts` (real CLI is at `src/cli/index.ts`)
-- Removed deprecated `@types/winston` dependency (winston v3+ ships its own types)
-- Removed `.DS_Store` files from repository
+### Improvements
 
-### Fixed
-- Fixed `prepare-release` npm script pointing to non-existent `scripts/prepare-release.sh`
+- **Cleaner repository** — removed leftover files and unnecessary dependencies that were cluttering the project.
 
-### Added
-- Added project-level `.gitignore` for `node_modules/`, `dist/`, `logs/`, `backups/`, `config.json`, coverage, and `.env`
+### Bug Fixes
+
+- **Fixed broken `prepare-release` script** — the npm script was pointing to a file that didn't exist.
 
 ## [1.1.0] - 2026-01-11
 
-### Fixed
-- **Critical**: Fixed binary wrapper path resolution issue that caused "Cannot find module" error after global npm installation
-- **Critical**: Fixed installation script repository URL to use correct GitHub repository
-- Binary wrapper now correctly resolves CLI entry point using Node.js path resolution
-- Installation script now has comprehensive error handling and cleanup on failure
-- Git conflicts during updates now handled automatically
-- Build verification ensures complete build before global installation
+### Bug Fixes
 
-### Improved
-- Simplified binary wrapper implementation (more reliable and maintainable)
-- Rewrote installation script with proper error handling and rollback mechanism
-- Config file updates now use safer JSON manipulation methods
-- Update script now shows version information for better user feedback
-- Test failures no longer block installation (warning only)
+- **Fixed "Cannot find module" error after global install** — if you installed with `npm install -g`, the CLI would crash on startup because it couldn't find its own files. The path resolution is now reliable regardless of how npm sets up symlinks.
+- **Fixed wrong repository URL in install script** — the one-line installer was pointing to the wrong GitHub repo, so `curl | bash` would fail. It now uses the correct URL.
+- **Fixed install failures leaving a mess** — if something went wrong during installation, leftover files and partial configs could cause problems on retry. The installer now cleans up after itself on failure.
 
-### Added
-- Automatic cleanup on installation failure
-- Build output verification before global installation
-- Version tracking in update script
-- Detailed error messages with context throughout installation process
-- Installation state tracking for proper cleanup
+### Improvements
 
-### Technical Details
-- Binary wrapper now uses Node.js `__dirname` which correctly follows symlinks to resolve the CLI entry point path
-- Installation script includes `trap` mechanism for cleanup on failure
-- All critical commands now have proper error checking
-- Security improvements: proper file permissions (config: 600, directories: 755)
+- **Smoother updates** — the update script now handles git conflicts automatically and shows you which version you're moving from/to.
+- **Safer config handling** — configuration file updates use proper JSON parsing instead of string manipulation, so your settings won't get corrupted during upgrades.
+- **Test failures don't block install** — if tests fail during installation (e.g. no Docker daemon on the build machine), you'll see a warning instead of a hard stop.
 
 ## [1.0.0] - 2026-01-02
 
-### Added
-- Initial release of Proxmox Cleanup Tool
-- Automated Docker resource cleanup (containers, images, volumes, networks)
-- Dry-run mode for safe preview of cleanup operations
-- Comprehensive backup system with metadata preservation
-- Resource protection patterns with wildcard support
-- CLI interface with full command set
-- Configuration management with JSON files
-- Cron-based scheduling system
-- Webhook notification support
-- Comprehensive test suite with 157 tests
-- Property-based testing with fast-check
-- TypeScript implementation with full type safety
-- Error handling and recovery mechanisms
-- Detailed logging and reporting
-- One-line installation script
-- Systemd service integration
-- Log rotation configuration
-- Update mechanism
-- Production-ready deployment
+**Initial release.**
 
-### Features
-- **Smart Resource Detection**: Identifies truly unused Docker resources
-- **Safety First**: Multiple protection mechanisms and dry-run mode
-- **Backup & Recovery**: Automatic metadata backup before cleanup
-- **Flexible Configuration**: JSON-based configuration with CLI overrides
-- **Scheduling**: Automated cleanup with cron expressions
-- **Notifications**: Webhook integration for cleanup results
-- **Comprehensive Testing**: 157 tests including property-based testing
-- **Production Ready**: Error handling, logging, and monitoring
+- **Automated Docker cleanup** — finds and removes unused containers, images, volumes, and networks in one command.
+- **Dry-run mode** — preview everything that would be removed before you commit. Run it as many times as you like — results are identical each time.
+- **Backup before cleanup** — resource metadata (names, IDs, sizes, what depends on what) is saved to a JSON file before anything gets deleted.
+- **Protection patterns** — keep important resources safe with wildcards (`production-*`), exact names, tags, or IDs.
+- **Dependency checking** — images used by containers, volumes mounted by containers, and networks with active connections are never touched.
+- **CLI with multiple commands** — `cleanup`, `dry-run`, `list`, and `validate-config`, all with flexible options.
+- **Configuration file** — set your preferences once in `config.json`, override anything with CLI flags.
+- **Scheduled cleanup** — set a cron expression and let it run automatically.
+- **Webhook notifications** — get notified when cleanup succeeds or fails.
+- **One-line install** — `curl | bash` handles Node.js dependencies, build, global CLI setup, systemd service, config files, and log rotation.
+- **152 tests** — including property-based testing with fast-check for resource identification, safe removal, backup integrity, and report consistency.
 
-### Technical Details
-- TypeScript 5.9.3
-- Node.js 18+ support
-- Docker API integration
-- Proxmox VE API integration
-- Jest testing framework
-- ESLint code quality
-- Comprehensive error handling
-- Parallel processing optimization
-
-### Installation
-- One-line installation script
-- Manual installation support
-- Global npm package installation
-- Systemd service integration
-- Configuration file creation
-- Log rotation setup
-
+[1.2.0]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.2.0
 [1.1.1]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.1.1
 [1.1.0]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.1.0
 [1.0.0]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.0.0

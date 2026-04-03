@@ -93,59 +93,10 @@ export class BackupManager implements IBackupManager {
   }
 
   /**
-   * List all backups in the backup directory
-   */
-  async listBackups(): Promise<string[]> {
-    try {
-      await this.ensureBackupDirectory();
-      const files = await fs.readdir(this.backupDirectory);
-      return files
-        .filter(f => f.endsWith('.backup.json'))
-        .sort()
-        .reverse(); // Most recent first
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to list backups: ${message}`);
-    }
-  }
-
-  /**
-   * Delete a backup file
-   */
-  async deleteBackup(filename: string): Promise<void> {
-    try {
-      const filePath = path.join(this.backupDirectory, filename);
-      await fs.unlink(filePath);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to delete backup ${filename}: ${message}`);
-    }
-  }
-
-  /**
-   * Get backup directory path
-   */
-  getBackupDirectory(): string {
-    return this.backupDirectory;
-  }
-
-  /**
-   * Set backup directory path
-   */
-  setBackupDirectory(directory: string): void {
-    this.backupDirectory = directory;
-  }
-
-  /**
    * Ensure backup directory exists
    */
   private async ensureBackupDirectory(): Promise<void> {
-    try {
-      await fs.access(this.backupDirectory);
-    } catch {
-      // Directory doesn't exist, create it
-      await fs.mkdir(this.backupDirectory, { recursive: true });
-    }
+    await fs.mkdir(this.backupDirectory, { recursive: true });
   }
 
   /**

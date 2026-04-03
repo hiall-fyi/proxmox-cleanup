@@ -11,7 +11,6 @@ import {
   IResourceScanner,
   IBackupManager,
   IReporter,
-  IProxmoxClient,
   ICleanupOrchestrator
 } from '../interfaces';
 
@@ -23,7 +22,6 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
   private resourceScanner: IResourceScanner;
   private backupManager: IBackupManager;
   private reporter: IReporter;
-  private proxmoxClient?: IProxmoxClient;
   private config: CleanupConfig;
 
   constructor(
@@ -31,15 +29,13 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
     resourceScanner: IResourceScanner,
     backupManager: IBackupManager,
     reporter: IReporter,
-    config: CleanupConfig,
-    proxmoxClient?: IProxmoxClient
+    config: CleanupConfig
   ) {
     this.dockerClient = dockerClient;
     this.resourceScanner = resourceScanner;
     this.backupManager = backupManager;
     this.reporter = reporter;
     this.config = config;
-    this.proxmoxClient = proxmoxClient;
   }
 
   /**
@@ -50,8 +46,6 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
     const mode = this.config.cleanup.dryRun ? 'dry-run' : 'cleanup';
 
     try {
-      this.reporter.logOperationStart(mode, 0);
-
       // Step 1: Connect to Docker
       await this.connectToDocker();
 

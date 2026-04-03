@@ -5,17 +5,17 @@ import { CommandResult, NodeStatus } from '../types';
  */
 export interface IProxmoxClient {
   /**
-   * Authenticate with Proxmox API using token
+   * Authenticate with Proxmox API
    */
-  authenticate(token: string): Promise<void>;
+  authenticate(): Promise<void>;
 
   /**
    * Execute a command on a Proxmox node
    */
-  executeCommand(nodeId: string, command: string): Promise<CommandResult>;
+  executeCommand(command: string): Promise<CommandResult>;
 
   /**
    * Get status of a Proxmox node
    */
-  getNodeStatus(nodeId: string): Promise<NodeStatus>;
+  getNodeStatus(): Promise<NodeStatus>;
 }

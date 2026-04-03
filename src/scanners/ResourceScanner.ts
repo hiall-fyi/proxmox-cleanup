@@ -8,7 +8,7 @@ import {
 } from '../types';
 import { IResourceScanner } from '../interfaces';
 import { IDockerClient } from '../interfaces';
-import { ResourceFilter } from '../utils';
+import { ResourceFilter } from '../utils/ResourceFilter';
 import { SizeCalculator } from '../utils/SizeCalculator';
 
 /**
@@ -277,12 +277,5 @@ export class ResourceScanner implements IResourceScanner {
    */
   verifySpaceFreed(predicted: number, actual: number): boolean {
     return this.sizeCalculator.verifySpaceFreed(predicted, actual);
-  }
-
-  /**
-   * Format bytes to human readable string
-   */
-  static formatBytes(bytes: number): string {
-    return SizeCalculator.formatBytes(bytes);
   }
 }

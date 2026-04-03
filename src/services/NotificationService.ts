@@ -55,16 +55,6 @@ export class NotificationService implements INotificationService {
         await this.sendWebhookNotification(message);
       }
 
-      // Send email notification if configured
-      if (this.config.emailRecipients && this.config.emailRecipients.length > 0) {
-        await this.sendEmailNotification(message);
-      }
-
-      // Send Slack notification if configured
-      if (this.config.slackChannel) {
-        await this.sendSlackNotification(message);
-      }
-
       this.logger.info('Notification sent successfully', {
         type: message.type,
         title: message.title
@@ -152,82 +142,5 @@ export class NotificationService implements INotificationService {
       url: this.config.webhookUrl,
       type: message.type
     });
-  }
-
-  /**
-   * Send email notification (placeholder implementation)
-   */
-  private async sendEmailNotification(message: NotificationMessage): Promise<void> {
-    // This is a placeholder - in a real implementation you would integrate
-    // with an email service like SendGrid, AWS SES, or SMTP
-    this.logger.info('Email notification would be sent', {
-      recipients: this.config.emailRecipients,
-      subject: message.title,
-      type: message.type
-    });
-
-    // For now, just log the email content
-    this.logger.debug('Email content', {
-      to: this.config.emailRecipients,
-      subject: `[${message.type.toUpperCase()}] ${message.title}`,
-      body: `${message.message}\n\nTimestamp: ${message.timestamp.toISOString()}${
-        message.data ? `\n\nData: ${JSON.stringify(message.data, null, 2)}` : ''
-      }`
-    });
-  }
-
-  /**
-   * Send Slack notification (placeholder implementation)
-   */
-  private async sendSlackNotification(message: NotificationMessage): Promise<void> {
-    // This is a placeholder - in a real implementation you would integrate
-    // with Slack's webhook API or Bot API
-    this.logger.info('Slack notification would be sent', {
-      channel: this.config.slackChannel,
-      title: message.title,
-      type: message.type
-    });
-
-    // For now, just log the Slack message content
-    const emoji = this.getSlackEmoji(message.type);
-    const slackMessage = {
-      channel: this.config.slackChannel,
-      text: `${emoji} *${message.title}*`,
-      attachments: [
-        {
-          color: this.getSlackColor(message.type),
-          text: message.message,
-          ts: Math.floor(message.timestamp.getTime() / 1000)
-        }
-      ]
-    };
-
-    this.logger.debug('Slack message content', slackMessage);
-  }
-
-  /**
-   * Get Slack emoji for message type
-   */
-  private getSlackEmoji(type: NotificationMessage['type']): string {
-    const emojis = {
-      success: ':white_check_mark:',
-      error: ':x:',
-      warning: ':warning:',
-      info: ':information_source:'
-    };
-    return emojis[type] || ':speech_balloon:';
-  }
-
-  /**
-   * Get Slack color for message type
-   */
-  private getSlackColor(type: NotificationMessage['type']): string {
-    const colors = {
-      success: 'good',
-      error: 'danger',
-      warning: 'warning',
-      info: '#36a64f'
-    };
-    return colors[type] || '#36a64f';
   }
 }

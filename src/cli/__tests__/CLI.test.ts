@@ -332,14 +332,6 @@ describe('ProxmoxCleanupCLI', () => {
   });
 
   describe('Utility Functions', () => {
-    it('should format bytes correctly', () => {
-      expect((cli as any).formatBytes(0)).toBe('0 B');
-      expect((cli as any).formatBytes(1024)).toBe('1 KB');
-      expect((cli as any).formatBytes(1048576)).toBe('1 MB');
-      expect((cli as any).formatBytes(1073741824)).toBe('1 GB');
-      expect((cli as any).formatBytes(1536)).toBe('1.5 KB');
-    });
-
     it('should get correct resource icons', () => {
       expect((cli as any).getResourceIcon('container')).toBe('📦');
       expect((cli as any).getResourceIcon('image')).toBe('🖼️');

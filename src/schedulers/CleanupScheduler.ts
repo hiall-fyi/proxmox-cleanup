@@ -2,6 +2,7 @@ import * as cron from 'node-cron';
 import { CleanupOrchestrator } from '../orchestrators/CleanupOrchestrator';
 import { Report, ScheduleConfig } from '../types';
 import { ICleanupScheduler, INotificationService } from '../interfaces';
+import { SizeCalculator } from '../utils/SizeCalculator';
 import winston from 'winston';
 
 /**
@@ -311,21 +312,8 @@ export class CleanupScheduler implements ICleanupScheduler {
    */
   private formatSuccessMessage(report: Report): string {
     const mode = report.mode === 'dry-run' ? 'Dry-run' : 'Cleanup';
-    const spaceFreed = this.formatBytes(report.summary.diskSpaceFreed);
+    const spaceFreed = SizeCalculator.formatBytes(report.summary.diskSpaceFreed);
 
     return `${mode} completed: ${report.summary.resourcesRemoved} resources removed, ${spaceFreed} freed`;
-  }
-
-  /**
-   * Format bytes to human readable format
-   */
-  private formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B';
-
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }

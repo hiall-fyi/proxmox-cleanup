@@ -324,21 +324,13 @@ export class Reporter {
    * Ensure log directory exists (async)
    */
   private async ensureLogDirectory(): Promise<void> {
-    try {
-      await fs.promises.access(this.logPath);
-    } catch {
-      await fs.promises.mkdir(this.logPath, { recursive: true });
-    }
+    await fs.promises.mkdir(this.logPath, { recursive: true });
   }
 
   /**
    * Ensure log directory exists (sync)
    */
   private ensureLogDirectorySync(): void {
-    try {
-      fs.accessSync(this.logPath);
-    } catch {
-      fs.mkdirSync(this.logPath, { recursive: true });
-    }
+    fs.mkdirSync(this.logPath, { recursive: true });
   }
 }

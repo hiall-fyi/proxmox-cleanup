@@ -8,6 +8,7 @@ import { BackupManager } from '../managers/BackupManager';
 import { Reporter } from '../reporters/Reporter';
 import { ProxmoxClient } from '../clients/ProxmoxClient';
 import { CleanupConfig, ResourceType, Resource, Report, CleanupError } from '../types';
+import { SizeCalculator } from '../utils/SizeCalculator';
 import * as fs from 'fs';
 
 /**
@@ -46,7 +47,7 @@ class ProxmoxCleanupCLI {
     this.program
       .name('proxmox-cleanup')
       .description('Automated cleanup tool for unused Docker resources on Proxmox infrastructure')
-      .version('1.0.0');
+      .version(require('../../package.json').version);
 
     // Main cleanup command
     this.program
@@ -383,20 +384,12 @@ class ProxmoxCleanupCLI {
     // Create reporter
     const reporter = new Reporter(config.reporting.logPath);
 
-    // Create Proxmox client if configured
-    let proxmoxClient;
-    if (config.proxmox.host && config.proxmox.token) {
-      proxmoxClient = new ProxmoxClient(config.proxmox);
-      await proxmoxClient.authenticate();
-    }
-
     return new CleanupOrchestrator(
       dockerClient,
       resourceScanner,
       backupManager,
       reporter,
-      config,
-      proxmoxClient
+      config
     );
   }
 
@@ -412,7 +405,7 @@ class ProxmoxCleanupCLI {
 
     console.log(`📊 Resources Scanned: ${report.summary.resourcesScanned}`);
     console.log(`${isDryRun ? '📋' : '🗑️'} Resources${isDryRun ? ' Would Be' : ''} Removed: ${report.summary.resourcesRemoved}`);
-    console.log(`💾 Disk Space ${isDryRun ? 'Would Be' : ''} Freed: ${this.formatBytes(report.summary.diskSpaceFreed)}`);
+    console.log(`💾 Disk Space ${isDryRun ? 'Would Be' : ''} Freed: ${SizeCalculator.formatBytes(report.summary.diskSpaceFreed)}`);
     console.log(`⏱️ Execution Time: ${report.summary.executionTime}ms`);
 
     if (report.details.skipped.length > 0) {
@@ -432,7 +425,7 @@ class ProxmoxCleanupCLI {
         console.log(`\n📋 ${isDryRun ? 'Resources to be removed:' : 'Removed resources:'}`);
         report.details.removed.forEach((resource: Resource) => {
           const icon = this.getResourceIcon(resource.type);
-          console.log(`   ${icon} ${resource.name} (${resource.type}) - ${this.formatBytes(resource.size)}`);
+          console.log(`   ${icon} ${resource.name} (${resource.type}) - ${SizeCalculator.formatBytes(resource.size)}`);
         });
       }
     }
@@ -472,17 +465,17 @@ class ProxmoxCleanupCLI {
       const icon = this.getResourceIcon(type);
       const totalSize = typeResources.reduce((sum: number, r: Resource) => sum + r.size, 0);
 
-      console.log(`${icon} ${type.toUpperCase()} (${typeResources.length} items, ${this.formatBytes(totalSize)})`);
+      console.log(`${icon} ${type.toUpperCase()} (${typeResources.length} items, ${SizeCalculator.formatBytes(totalSize)})`);
 
       typeResources.forEach((resource: Resource) => {
-        console.log(`   • ${resource.name} - ${this.formatBytes(resource.size)}`);
+        console.log(`   • ${resource.name} - ${SizeCalculator.formatBytes(resource.size)}`);
       });
 
       console.log('');
     });
 
     const totalSize = resources.reduce((sum, r) => sum + r.size, 0);
-    console.log(`💾 Total reclaimable space: ${this.formatBytes(totalSize)}`);
+    console.log(`💾 Total reclaimable space: ${SizeCalculator.formatBytes(totalSize)}`);
   }
 
   /**
@@ -496,19 +489,6 @@ class ProxmoxCleanupCLI {
       network: '🌐'
     };
     return icons[type] || '📄';
-  }
-
-  /**
-   * Format bytes to human readable format
-   */
-  private formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B';
-
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   /**

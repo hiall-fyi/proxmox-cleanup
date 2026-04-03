@@ -1,30 +1,22 @@
-# Proxmox Cleanup - Automated Docker Resource Cleanup for Proxmox VE
+# Proxmox Cleanup — Automated Docker Resource Cleanup for Proxmox VE
 
 <div align="center">
 
 <!-- Platform Badges -->
-![Proxmox](https://img.shields.io/badge/Proxmox-VE%208.x-E57000?style=for-the-badge&logo=proxmox&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue?style=for-the-badge&logo=typescript&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-24.x-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Proxmox](https://img.shields.io/badge/Proxmox-VE%208.x-E57000?style=for-the-badge&logo=proxmox&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue?style=for-the-badge&logo=typescript&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-24.x-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 <!-- Status Badges -->
-![Version](https://img.shields.io/badge/Version-1.1.1-purple?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
-![Tests](https://img.shields.io/badge/Tests-157%20passing-brightgreen?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.2.0-purple?style=for-the-badge) ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge) ![Tests](https://img.shields.io/badge/Tests-152%20passing-brightgreen?style=for-the-badge) ![Maintained](https://img.shields.io/badge/Maintained-Yes-green.svg?style=for-the-badge)
 
 <!-- Community Badges -->
-![GitHub stars](https://img.shields.io/github/stars/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github)
-![GitHub forks](https://img.shields.io/github/forks/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github)
-![GitHub issues](https://img.shields.io/github/issues/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github)
-![GitHub last commit](https://img.shields.io/github/last-commit/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github)
+![GitHub stars](https://img.shields.io/github/stars/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github) ![GitHub forks](https://img.shields.io/github/forks/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github) ![GitHub issues](https://img.shields.io/github/issues/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github) ![GitHub last commit](https://img.shields.io/github/last-commit/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github)
 
 <!-- Support -->
 [![Buy Me A Coffee](https://img.shields.io/badge/Support-Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/hiallfyi)
 
-**Automated cleanup tool for unused Docker resources on Proxmox VE infrastructure.**
+**🧹 One command to find and remove unused Docker containers, images, volumes, and networks on your Proxmox host.**
 
-**Made with ❤️ by Joe Yiu ([@hiall-fyi](https://github.com/hiall-fyi))**
+**Dry-run first, backup automatically, protect what matters. Install once, schedule with cron, and forget about it.**
 
 [Quick Start](#quick-start) • [Features](#features) • [Configuration](#configuration) • [CLI Reference](#cli-commands-reference) • [Troubleshooting](#troubleshooting)
 
@@ -103,7 +95,7 @@ proxmox-cleanup cleanup -c /etc/proxmox-cleanup/config.json
 
 - **Automated Docker Cleanup** — Remove unused containers, images, volumes, and networks in one command
 - **Safety First** — Backup before cleanup, dry-run mode, protected resource patterns, dependency checking
-- **Production Ready** — 157 tests with property-based testing, comprehensive error handling, logging
+- **Production Ready** — 152 tests with property-based testing, comprehensive error handling, logging
 - **Proxmox Optimized** — Designed specifically for Proxmox VE environments
 - **Scheduled Cleanup** — Set it and forget it with cron expressions
 - **Notifications** — Webhook notifications for cleanup results
@@ -193,7 +185,7 @@ Webhook notifications for cleanup results:
 }
 ```
 
-Email and Slack integrations are implemented as placeholders — extend the `NotificationService` class to add actual implementations.
+Webhook is the supported notification channel. You can extend the notification system to add email or Slack support.
 
 ### Protection Patterns
 
@@ -307,7 +299,7 @@ proxmox-cleanup/
 Property-based testing with `fast-check` (100+ random inputs per property) covering resource identification, safe removal guarantees, backup completeness, size calculation accuracy, and report consistency. Plus comprehensive unit tests for all components.
 
 ```bash
-npm test              # Run all tests
+npm test              # Run all 152 tests
 npm run test:coverage # Run with coverage
 npm run build         # Build
 npm run lint          # Linting
@@ -359,9 +351,9 @@ For other issues, use `--verbose` flag for detailed logging, check logs in the c
 
 ## License
 
-**MIT License** — see [LICENSE](LICENSE) for full details.
+**MIT License** — Free to use, modify, and distribute. See [LICENSE](LICENSE) for full details.
 
-**Original Author:** Joe Yiu ([@hiall-fyi](https://github.com/hiall-fyi))
+**Made with ❤️ by Joe Yiu ([@hiall-fyi](https://github.com/hiall-fyi))**
 
 ---
 

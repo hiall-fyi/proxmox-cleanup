@@ -1,6 +1,3 @@
-# Dependencies
-node_modules/
-
 # Build output
 dist/
 
@@ -13,9 +10,3 @@ backups/
 
 # Runtime config (contains credentials)
 config.json
-
-# Coverage
-coverage/
-
-# Environment
-.env

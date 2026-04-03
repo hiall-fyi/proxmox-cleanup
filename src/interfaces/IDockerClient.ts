@@ -23,7 +23,7 @@ export interface IDockerClient {
   /**
    * List all containers (running and stopped)
    */
-  listContainers(all: boolean): Promise<ContainerResource[]>;
+  listContainers(all?: boolean): Promise<ContainerResource[]>;
 
   /**
    * List all images

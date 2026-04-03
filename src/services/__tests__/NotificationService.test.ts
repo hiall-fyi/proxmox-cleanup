@@ -211,58 +211,33 @@ describe('NotificationService', () => {
   });
 
   describe('Multiple Notification Channels', () => {
-    it('should send to all configured channels', async () => {
+    it('should send webhook when configured', async () => {
       mockAxios.post.mockResolvedValue({ status: 200 });
 
       const message: NotificationMessage = {
         type: 'success',
-        title: 'Test Multi-Channel',
-        message: 'This should go to all channels',
+        title: 'Test Webhook',
+        message: 'This should go to webhook',
         timestamp: new Date()
       };
 
       await notificationService.sendNotification(message);
 
-      // Should call webhook
       expect(mockAxios.post).toHaveBeenCalledWith(
         'https://example.com/webhook',
         expect.any(Object),
         expect.any(Object)
       );
-
-      // Email and Slack are currently placeholder implementations
-      // In a real implementation, these would make actual API calls
     });
 
-    it('should work with only webhook configured', async () => {
-      mockConfig.emailRecipients = undefined;
-      mockConfig.slackChannel = undefined;
-      notificationService = new NotificationService(mockConfig);
-
-      mockAxios.post.mockResolvedValue({ status: 200 });
-
-      const message: NotificationMessage = {
-        type: 'info',
-        title: 'Webhook Only',
-        message: 'Only webhook should be called',
-        timestamp: new Date()
-      };
-
-      await notificationService.sendNotification(message);
-
-      expect(mockAxios.post).toHaveBeenCalledTimes(1);
-    });
-
-    it('should work with no channels configured', async () => {
+    it('should work with no webhook configured', async () => {
       mockConfig.webhookUrl = undefined;
-      mockConfig.emailRecipients = undefined;
-      mockConfig.slackChannel = undefined;
       notificationService = new NotificationService(mockConfig);
 
       const message: NotificationMessage = {
         type: 'info',
-        title: 'No Channels',
-        message: 'No channels configured',
+        title: 'No Webhook',
+        message: 'No webhook configured',
         timestamp: new Date()
       };
 

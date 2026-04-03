@@ -144,24 +144,6 @@ export class ProxmoxClient implements IProxmoxClient {
   }
 
   /**
-   * Execute Docker cleanup command on Proxmox node
-   */
-  async executeDockerCleanup(dryRun: boolean = false): Promise<CommandResult> {
-    const command = dryRun
-      ? 'docker system df'
-      : 'docker system prune -af --volumes';
-
-    return this.executeCommand(command);
-  }
-
-  /**
-   * Get Docker system information
-   */
-  async getDockerSystemInfo(): Promise<CommandResult> {
-    return this.executeCommand('docker system df -v');
-  }
-
-  /**
    * Setup axios client with SSL configuration
    */
   private setupApiClient(): void {

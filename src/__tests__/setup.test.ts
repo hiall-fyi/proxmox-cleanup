@@ -9,6 +9,6 @@ describe('Project Setup', () => {
 
   it('should import types correctly', () => {
     const resourceType: string = 'container';
-    expect(['container', 'image', 'volume', 'network', 'cache']).toContain(resourceType);
+    expect(['container', 'image', 'volume', 'network']).toContain(resourceType);
   });
 });

@@ -3,7 +3,7 @@
  */
 
 // Resource Types
-export type ResourceType = 'container' | 'image' | 'volume' | 'network' | 'cache';
+export type ResourceType = 'container' | 'image' | 'volume' | 'network';
 
 export interface Resource {
   id: string;
@@ -59,12 +59,6 @@ export interface CleanupOptions {
 export interface ReportingOptions {
   verbose: boolean;
   logPath: string;
-}
-
-export interface SchedulingOptions {
-  enabled: boolean;
-  cron: string;
-  notificationEmail?: string;
 }
 
 export interface CleanupConfig {
