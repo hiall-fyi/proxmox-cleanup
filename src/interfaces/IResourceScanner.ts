@@ -34,12 +34,12 @@ export interface IResourceScanner {
   /**
    * Check if a resource is currently in use
    */
-  isResourceInUse(resource: Resource): Promise<boolean>;
+  isResourceInUse(resource: Resource, containers?: ContainerResource[]): Promise<boolean>;
 
   /**
    * Perform cleanup operation with dry-run support
    */
-  performCleanup(resources: Resource[]): Promise<{ removed: Resource[], skipped: Resource[], errors: CleanupErrorDetail[] }>;
+  performCleanup(resources: Resource[]): Promise<{ removed: Resource[]; skipped: Resource[]; errors: CleanupErrorDetail[] }>;
 
   /**
    * Get dry-run status
@@ -52,32 +52,17 @@ export interface IResourceScanner {
   setDryRun(dryRun: boolean): void;
 
   /**
-   * Calculate accurate sizes for resources
+   * Resources already carry sizes populated by the Docker API; pass through.
    */
-  calculateResourceSizes(resources: Resource[]): Promise<Resource[]>;
+  calculateResourceSizes(resources: Resource[]): Resource[];
 
   /**
-   * Calculate total size of resources
+   * Sum sizes across a list of resources
    */
-  calculateTotalSize(resources: Resource[]): Promise<number>;
+  calculateTotalSize(resources: Resource[]): number;
 
   /**
    * Sort resources by size in descending order
    */
   sortResourcesBySize(resources: Resource[]): Resource[];
-
-  /**
-   * Get disk space before cleanup
-   */
-  getDiskSpaceBefore(): Promise<number>;
-
-  /**
-   * Get disk space after cleanup
-   */
-  getDiskSpaceAfter(): Promise<number>;
-
-  /**
-   * Verify predicted vs actual disk space freed
-   */
-  verifySpaceFreed(predicted: number, actual: number): boolean;
 }

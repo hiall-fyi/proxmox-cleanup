@@ -65,8 +65,6 @@ export interface CleanupConfig {
   proxmox: ProxmoxConfig;
   cleanup: CleanupOptions;
   reporting: ReportingOptions;
-  scheduling?: ScheduleConfig;
-  notifications?: NotificationConfig;
 }
 
 // Result Types
@@ -137,55 +135,10 @@ export interface Report {
   };
 }
 
-// API Types
-export interface CommandResult {
-  stdout: string;
-  stderr: string;
-  exitCode: number;
-}
-
-export interface NodeStatus {
-  status: string;
-  uptime: number;
-  cpu: number;
-  memory: {
-    used: number;
-    total: number;
-  };
-}
-
-export interface PruneResult {
-  containersDeleted: number;
-  imagesDeleted: number;
-  volumesDeleted: number;
-  networksDeleted: number;
-  spaceReclaimed: number;
-}
-
 /**
  * Error detail for cleanup operations
  */
 export interface CleanupErrorDetail {
   resource: Resource;
   error: string;
-}
-// Scheduling Types
-export interface ScheduleConfig {
-  enabled: boolean;
-  cronExpression: string;
-  dryRun: boolean;
-  timezone?: string;
-  maxRetries?: number;
-  retryDelay?: number;
-}
-
-// Notification Types
-export interface NotificationConfig {
-  enabled: boolean;
-  onSuccess: boolean;
-  onFailure: boolean;
-  onStart: boolean;
-  webhookUrl?: string;
-  emailRecipients?: string[];
-  slackChannel?: string;
 }

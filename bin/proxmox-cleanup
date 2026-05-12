@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 
-// Simple and correct path resolution
-// When npm installs globally, __dirname is already inside the package at bin/
-// So ../dist/cli/index.js is the correct relative path
 const path = require('path');
 const cliPath = path.join(__dirname, '..', 'dist', 'cli', 'index.js');
 
-// Load and execute the CLI
-require(cliPath);
+try {
+  require(cliPath);
+} catch (err) {
+  if (err && err.code === 'MODULE_NOT_FOUND' && err.message.includes('dist/cli/index.js')) {
+    console.error('proxmox-cleanup: build output is missing at ' + cliPath + '.');
+    console.error('Run `npm run build` in the install directory, or reinstall the package.');
+    process.exit(1);
+  }
+  throw err;
+}

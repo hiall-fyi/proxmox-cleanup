@@ -17,148 +17,110 @@ import { SizeCalculator } from '../utils/SizeCalculator';
  */
 export class ResourceScanner implements IResourceScanner {
   private dockerClient: IDockerClient;
-  private allContainers: ContainerResource[] = [];
   private resourceFilter: ResourceFilter;
   private dryRun: boolean;
-  private sizeCalculator: SizeCalculator;
 
   constructor(dockerClient: IDockerClient, protectedPatterns: string[] = [], dryRun: boolean = false) {
     this.dockerClient = dockerClient;
     this.resourceFilter = new ResourceFilter(protectedPatterns);
     this.dryRun = dryRun;
-    this.sizeCalculator = new SizeCalculator(dockerClient);
   }
 
   /**
-   * Scan for unused containers
-   * A container is unused if it's stopped/exited with no restart policy
+   * Scan for unused containers (stopped or exited) that aren't protected.
    */
   async scanContainers(): Promise<ContainerResource[]> {
-    // Get all containers (including stopped ones)
-    this.allContainers = await this.dockerClient.listContainers(true);
-
-    // Filter for unused containers
-    // Unused = stopped or exited (not running)
-    const unusedContainers = this.allContainers.filter(container => {
-      return container.status === 'stopped' || container.status === 'exited';
-    });
-
-    // Filter out protected resources
-    return this.resourceFilter.filterProtected(unusedContainers);
+    const containers = await this.dockerClient.listContainers(true);
+    const unused = containers.filter(c => c.status !== 'running');
+    return this.resourceFilter.filterProtected(unused);
   }
 
   /**
-   * Scan for unused images
-   * An image is unused if it's not used by any container
+   * Scan for unused images (not referenced by any container, running or stopped).
    */
   async scanImages(): Promise<ImageResource[]> {
-    // Ensure we have container data
-    if (this.allContainers.length === 0) {
-      this.allContainers = await this.dockerClient.listContainers(true);
-    }
+    const [containers, images] = await Promise.all([
+      this.dockerClient.listContainers(true),
+      this.dockerClient.listImages()
+    ]);
 
-    // Get all images
-    const allImages = await this.dockerClient.listImages();
+    const imagesWithUsage = images
+      .map(image => ({
+        ...image,
+        usedByContainers: containers
+          .filter(c => c.imageId === image.id)
+          .map(c => c.id)
+      }))
+      .filter(image => image.usedByContainers.length === 0);
 
-    // Populate usedByContainers for all images
-    const imagesWithUsage = allImages.map(image => ({
-      ...image,
-      usedByContainers: this.allContainers
-        .filter(c => c.imageId === image.id)
-        .map(c => c.id)
-    })).filter(image => image.usedByContainers.length === 0);
-
-    // Filter out protected resources
     return this.resourceFilter.filterProtected(imagesWithUsage);
   }
 
   /**
-   * Scan for unused volumes
-   * A volume is unused if it's not mounted by any container
+   * Scan for unused volumes (not mounted by any container, running or stopped).
    */
   async scanVolumes(): Promise<VolumeResource[]> {
-    // Ensure we have container data
-    if (this.allContainers.length === 0) {
-      this.allContainers = await this.dockerClient.listContainers(true);
+    const [containers, volumes] = await Promise.all([
+      this.dockerClient.listContainers(true),
+      this.dockerClient.listVolumes()
+    ]);
+
+    const mountedNames = new Set<string>();
+    for (const container of containers) {
+      for (const name of container.volumes) {
+        if (name) mountedNames.add(name);
+      }
     }
 
-    // Get all volumes
-    const allVolumes = await this.dockerClient.listVolumes();
+    const volumesWithUsage = volumes
+      .map(volume => ({
+        ...volume,
+        usedByContainers: containers
+          .filter(c => c.volumes.includes(volume.name))
+          .map(c => c.id)
+      }))
+      .filter(volume => !mountedNames.has(volume.name));
 
-    // Build set of volume names used by containers
-    const usedVolumeNames = new Set<string>();
-    this.allContainers.forEach(container => {
-      container.volumes.forEach(volumeName => {
-        if (volumeName) {
-          usedVolumeNames.add(volumeName);
-        }
-      });
-    });
-
-    // Populate usedByContainers for all volumes
-    const volumesWithUsage = allVolumes.map(volume => ({
-      ...volume,
-      usedByContainers: this.allContainers
-        .filter(c => c.volumes.includes(volume.name))
-        .map(c => c.id)
-    })).filter(volume => volume.usedByContainers.length === 0);
-
-    // Filter out protected resources
     return this.resourceFilter.filterProtected(volumesWithUsage);
   }
 
   /**
-   * Scan for unused networks
-   * A network is unused if it has no connected containers
-   * Excludes default networks (bridge, host, none)
+   * Scan for unused networks — no connected containers, excluding Docker's
+   * built-in `bridge`, `host`, and `none` networks.
    */
   async scanNetworks(): Promise<NetworkResource[]> {
-    // Get all networks
     const allNetworks = await this.dockerClient.listNetworks();
-
-    // Default networks that should never be removed
     const defaultNetworks = new Set(['bridge', 'host', 'none']);
 
-    // Filter for unused networks (excluding defaults)
     const unusedNetworks = allNetworks.filter(network => {
-      const isDefault = defaultNetworks.has(network.name);
-      const hasNoContainers = network.connectedContainers.length === 0;
-      return !isDefault && hasNoContainers;
+      return !defaultNetworks.has(network.name) && network.connectedContainers.length === 0;
     });
 
-    // Filter out protected resources
     return this.resourceFilter.filterProtected(unusedNetworks);
   }
 
   /**
-   * Check if a resource is currently in use
-   * This is a comprehensive check across all resource types
-   * Handles stopped containers with restart policies
+   * Check if a resource is still in use. Fetches the current container list
+   * once and caches it on the instance for the duration of a single
+   * `performCleanup` call.
    */
-  async isResourceInUse(resource: Resource): Promise<boolean> {
-    // Ensure we have fresh container data
-    this.allContainers = await this.dockerClient.listContainers(true);
+  async isResourceInUse(resource: Resource, containers?: ContainerResource[]): Promise<boolean> {
+    const liveContainers = containers ?? await this.dockerClient.listContainers(true);
 
     switch (resource.type) {
     case 'container': {
-      // A container is in use if it's running
       const container = resource as ContainerResource;
       return container.status === 'running';
     }
     case 'image': {
-      // An image is in use if any container (running or stopped) uses it
-      // We consider stopped containers because they might be restarted
       const image = resource as ImageResource;
-      return this.allContainers.some(c => c.imageId === image.id);
+      return liveContainers.some(c => c.imageId === image.id);
     }
     case 'volume': {
-      // A volume is in use if any container (running or stopped) mounts it
-      // We consider stopped containers because they might be restarted
       const volume = resource as VolumeResource;
-      return this.allContainers.some(c => c.volumes.includes(volume.name));
+      return liveContainers.some(c => c.volumes.includes(volume.name));
     }
     case 'network': {
-      // A network is in use if it has connected containers
       const network = resource as NetworkResource;
       return network.connectedContainers.length > 0;
     }
@@ -168,30 +130,29 @@ export class ResourceScanner implements IResourceScanner {
   }
 
   /**
-   * Perform cleanup operation with dry-run support
-   * In dry-run mode, no actual removal occurs
+   * Perform cleanup operation with dry-run support.
+   * Fetches the container list once up-front and reuses it for every
+   * `isResourceInUse` check instead of re-listing per resource.
    */
-  async performCleanup(resources: Resource[]): Promise<{ removed: Resource[], skipped: Resource[], errors: CleanupErrorDetail[] }> {
+  async performCleanup(resources: Resource[]): Promise<{ removed: Resource[]; skipped: Resource[]; errors: CleanupErrorDetail[] }> {
     const removed: Resource[] = [];
     const skipped: Resource[] = [];
     const errors: CleanupErrorDetail[] = [];
 
+    const containers = await this.dockerClient.listContainers(true);
+
     for (const resource of resources) {
       try {
-        // Check if resource is still in use (safety check)
-        const inUse = await this.isResourceInUse(resource);
-        if (inUse) {
+        if (await this.isResourceInUse(resource, containers)) {
           skipped.push(resource);
           continue;
         }
 
-        // In dry-run mode, just simulate the removal
         if (this.dryRun) {
           removed.push(resource);
           continue;
         }
 
-        // Perform actual removal based on resource type
         switch (resource.type) {
         case 'container':
           await this.dockerClient.removeContainer(resource.id);
@@ -223,59 +184,26 @@ export class ResourceScanner implements IResourceScanner {
     return { removed, skipped, errors };
   }
 
-  /**
-   * Get dry-run status
-   */
   isDryRun(): boolean {
     return this.dryRun;
   }
 
-  /**
-   * Set dry-run mode
-   */
   setDryRun(dryRun: boolean): void {
     this.dryRun = dryRun;
   }
 
   /**
-   * Calculate accurate sizes for resources
+   * Resources already carry sizes populated by the Docker API; pass through.
    */
-  async calculateResourceSizes(resources: Resource[]): Promise<Resource[]> {
-    return this.sizeCalculator.updateResourceSizes(resources);
+  calculateResourceSizes(resources: Resource[]): Resource[] {
+    return new SizeCalculator().updateResourceSizes(resources);
   }
 
-  /**
-   * Calculate total size of resources
-   */
-  async calculateTotalSize(resources: Resource[]): Promise<number> {
-    return this.sizeCalculator.calculateTotalSize(resources);
+  calculateTotalSize(resources: Resource[]): number {
+    return new SizeCalculator().calculateTotalSize(resources);
   }
 
-  /**
-   * Sort resources by size in descending order
-   */
   sortResourcesBySize(resources: Resource[]): Resource[] {
-    return this.sizeCalculator.sortResourcesBySize(resources);
-  }
-
-  /**
-   * Get disk space before cleanup
-   */
-  async getDiskSpaceBefore(): Promise<number> {
-    return this.sizeCalculator.getDiskSpaceBefore();
-  }
-
-  /**
-   * Get disk space after cleanup
-   */
-  async getDiskSpaceAfter(): Promise<number> {
-    return this.sizeCalculator.getDiskSpaceAfter();
-  }
-
-  /**
-   * Verify predicted vs actual disk space freed
-   */
-  verifySpaceFreed(predicted: number, actual: number): boolean {
-    return this.sizeCalculator.verifySpaceFreed(predicted, actual);
+    return new SizeCalculator().sortResourcesBySize(resources);
   }
 }

@@ -63,16 +63,6 @@ class MockDockerClient implements IDockerClient {
     }
   }
 
-  async pruneSystem(): Promise<any> {
-    return {
-      containersDeleted: 0,
-      imagesDeleted: 0,
-      volumesDeleted: 0,
-      networksDeleted: 0,
-      spaceReclaimed: 0
-    };
-  }
-
   // Helper methods for testing
   setContainers(containers: ContainerResource[]): void {
     this.containers = [...containers];

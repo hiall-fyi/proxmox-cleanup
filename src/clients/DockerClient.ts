@@ -4,7 +4,6 @@ import {
   ImageResource,
   VolumeResource,
   NetworkResource,
-  PruneResult,
   CleanupError
 } from '../types';
 import { IDockerClient } from '../interfaces';
@@ -45,13 +44,14 @@ export class DockerClient implements IDockerClient {
   }
 
   /**
-   * List all containers (running and stopped)
+   * List all containers (running and stopped).
+   * Passes `size: true` so Docker populates SizeRw for each container.
    */
   async listContainers(all: boolean = true): Promise<ContainerResource[]> {
     this.ensureConnected();
 
     try {
-      const containers = await this.docker.listContainers({ all });
+      const containers = await this.docker.listContainers({ all, size: true });
 
       return containers.map(container => ({
         id: container.Id,
@@ -62,7 +62,11 @@ export class DockerClient implements IDockerClient {
         tags: container.Labels ? Object.keys(container.Labels) : [],
         status: this.mapContainerStatus(container.State),
         imageId: container.ImageID,
-        volumes: container.Mounts?.map(m => m.Name || m.Source) || []
+        // Only named volumes — bind mounts report Name === '' and would
+        // otherwise leak host paths into what callers treat as volume names.
+        volumes: container.Mounts
+          ?.filter(m => m.Type === 'volume' && m.Name)
+          .map(m => m.Name as string) || []
       }));
     } catch (error) {
       const cleanupError = this.createError('unknown', 'Failed to list containers', error);
@@ -239,33 +243,6 @@ export class DockerClient implements IDockerClient {
         throw new Error(cleanupError.message);
       }
       const cleanupError = this.createError('unknown', `Failed to remove network ${id}`, error);
-      throw new Error(cleanupError.message);
-    }
-  }
-
-  /**
-   * Prune unused Docker resources
-   */
-  async pruneSystem(): Promise<PruneResult> {
-    this.ensureConnected();
-
-    try {
-      const [containers, images, volumes, networks] = await Promise.all([
-        this.docker.pruneContainers(),
-        this.docker.pruneImages(),
-        this.docker.pruneVolumes(),
-        this.docker.pruneNetworks()
-      ]);
-
-      return {
-        containersDeleted: containers.ContainersDeleted?.length || 0,
-        imagesDeleted: images.ImagesDeleted?.length || 0,
-        volumesDeleted: volumes.VolumesDeleted?.length || 0,
-        networksDeleted: networks.NetworksDeleted?.length || 0,
-        spaceReclaimed: (containers.SpaceReclaimed || 0) + (images.SpaceReclaimed || 0)
-      };
-    } catch (error) {
-      const cleanupError = this.createError('unknown', 'Failed to prune system', error);
       throw new Error(cleanupError.message);
     }
   }

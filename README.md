@@ -6,7 +6,7 @@
 ![Proxmox](https://img.shields.io/badge/Proxmox-VE%208.x-E57000?style=for-the-badge&logo=proxmox&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue?style=for-the-badge&logo=typescript&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-24.x-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 <!-- Status Badges -->
-![Version](https://img.shields.io/badge/Version-1.2.0-purple?style=for-the-badge) ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge) ![Tests](https://img.shields.io/badge/Tests-152%20passing-brightgreen?style=for-the-badge) ![Maintained](https://img.shields.io/badge/Maintained-Yes-green.svg?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.2.1-purple?style=for-the-badge) ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge) ![Maintained](https://img.shields.io/badge/Maintained-Yes-green.svg?style=for-the-badge)
 
 <!-- Community Badges -->
 ![GitHub stars](https://img.shields.io/github/stars/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github) ![GitHub forks](https://img.shields.io/github/forks/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github) ![GitHub issues](https://img.shields.io/github/issues/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github) ![GitHub last commit](https://img.shields.io/github/last-commit/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github)
@@ -26,9 +26,9 @@
 
 ## Why Proxmox Cleanup?
 
-Running Docker on Proxmox VE means unused containers, images, volumes, and networks pile up over time — eating disk space and cluttering your environment. Proxmox Cleanup automates the identification and removal of these unused resources with safety-first design: backups before deletion, dry-run previews, protected resource patterns, and dependency checking.
+Running Docker on a Proxmox host tends to leave behind unused containers, images, volumes, and networks — quietly eating disk space. Proxmox Cleanup finds and removes them, with a few safety nets: backups before anything is deleted, a dry-run you can preview first, protection patterns for the things you want to keep, and dependency checks so nothing in use gets touched.
 
-One-line install, schedule it with cron, and forget about it.
+One-line install, schedule it with cron, then forget about it.
 
 ---
 
@@ -93,14 +93,13 @@ proxmox-cleanup cleanup -c /etc/proxmox-cleanup/config.json
 
 ## Features
 
-- **Automated Docker Cleanup** — Remove unused containers, images, volumes, and networks in one command
-- **Safety First** — Backup before cleanup, dry-run mode, protected resource patterns, dependency checking
-- **Production Ready** — 152 tests with property-based testing, comprehensive error handling, logging
-- **Proxmox Optimized** — Designed specifically for Proxmox VE environments
-- **Scheduled Cleanup** — Set it and forget it with cron expressions
-- **Notifications** — Webhook notifications for cleanup results
-- **Comprehensive Reporting** — Detailed reports with disk space calculations and execution metrics
-- **CLI Interface** — Full-featured command-line interface with multiple commands
+- **Automated Docker cleanup** — remove unused containers, images, volumes, and networks in one command
+- **Safety first** — backup before cleanup, dry-run mode, protected resource patterns, dependency checking
+- **Well tested** — property-based tests with `fast-check`, structured logging, explicit error reporting
+- **Proxmox VE friendly** — tested on Proxmox VE 8.x running Docker on the host
+- **Scheduled runs via systemd or cron** — the installer registers a systemd unit you can drive from a timer or system cron
+- **Readable reports** — disk space freed, execution time, what was kept or skipped and why
+- **CLI with the common commands you'd expect** — `cleanup`, `dry-run`, `list`, `validate-config`, plus the usual flags
 
 ### Resource Types
 
@@ -141,18 +140,6 @@ Create a `config.json` file (see `config.example.json`):
   "reporting": {
     "verbose": true,
     "logPath": "./logs"
-  },
-  "scheduling": {
-    "enabled": false,
-    "cronExpression": "0 2 * * *",
-    "dryRun": true,
-    "timezone": "UTC"
-  },
-  "notifications": {
-    "enabled": false,
-    "onSuccess": true,
-    "onFailure": true,
-    "webhookUrl": "https://your-webhook.com"
   }
 }
 ```
@@ -161,7 +148,24 @@ All configuration options can be overridden via CLI flags.
 
 ### Scheduling
 
-Automate cleanup with cron expressions:
+The installer registers `proxmox-cleanup.service` as a systemd unit. Drive it from a systemd timer or regular cron:
+
+```ini
+# /etc/systemd/system/proxmox-cleanup.timer
+[Unit]
+Description=Run Proxmox Cleanup daily
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+```bash
+systemctl enable --now proxmox-cleanup.timer
+```
 
 | Pattern | Schedule |
 |---------|----------|
@@ -169,23 +173,6 @@ Automate cleanup with cron expressions:
 | `0 */6 * * *` | Every 6 hours |
 | `0 0 * * 0` | Weekly on Sunday |
 | `0 0 1 * *` | Monthly on 1st |
-
-### Notifications
-
-Webhook notifications for cleanup results:
-
-```json
-{
-  "notifications": {
-    "enabled": true,
-    "webhookUrl": "https://your-webhook.com/cleanup",
-    "onSuccess": true,
-    "onFailure": true
-  }
-}
-```
-
-Webhook is the supported notification channel. You can extend the notification system to add email or Slack support.
 
 ### Protection Patterns
 
@@ -286,8 +273,6 @@ proxmox-cleanup/
 │   ├── utils/           # Utility functions
 │   ├── managers/        # Backup management
 │   ├── reporters/       # Report generation
-│   ├── schedulers/      # Cron scheduling
-│   ├── services/        # Notification services
 │   ├── orchestrators/   # Main workflow coordination
 │   └── cli/             # Command-line interface
 ├── config.example.json  # Example configuration
@@ -296,10 +281,10 @@ proxmox-cleanup/
 
 ### Testing
 
-Property-based testing with `fast-check` (100+ random inputs per property) covering resource identification, safe removal guarantees, backup completeness, size calculation accuracy, and report consistency. Plus comprehensive unit tests for all components.
+Property-based testing with `fast-check` (100+ random inputs per property) covering resource identification, safe removal guarantees, backup completeness, size calculation accuracy, and report consistency. Plus unit tests for every component.
 
 ```bash
-npm test              # Run all 152 tests
+npm test              # Run the full suite
 npm run test:coverage # Run with coverage
 npm run build         # Build
 npm run lint          # Linting

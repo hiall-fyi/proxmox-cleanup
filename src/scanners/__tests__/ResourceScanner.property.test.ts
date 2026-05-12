@@ -36,8 +36,7 @@ describe('ResourceScanner Property Tests', () => {
             removeContainer: jest.fn(),
             removeImage: jest.fn(),
             removeVolume: jest.fn(),
-            removeNetwork: jest.fn(),
-            pruneSystem: jest.fn()
+            removeNetwork: jest.fn()
           };
 
           const scanner = new ResourceScanner(mockDockerClient);
@@ -110,8 +109,7 @@ it('should not mark resources as unused if they are in use by any container', as
           removeContainer: jest.fn(),
           removeImage: jest.fn(),
           removeVolume: jest.fn(),
-          removeNetwork: jest.fn(),
-          pruneSystem: jest.fn()
+          removeNetwork: jest.fn()
         };
 
         const scanner = new ResourceScanner(mockDockerClient);

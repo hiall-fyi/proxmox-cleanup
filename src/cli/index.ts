@@ -10,6 +10,7 @@ import { ProxmoxClient } from '../clients/ProxmoxClient';
 import { CleanupConfig, ResourceType, Resource, Report, CleanupError } from '../types';
 import { SizeCalculator } from '../utils/SizeCalculator';
 import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * CLI options interface
@@ -41,13 +42,32 @@ class ProxmoxCleanupCLI {
   }
 
   /**
+   * Read the CLI version from the package.json shipped alongside dist/.
+   * Walks up from __dirname because the compiled file lives at dist/cli/index.js
+   * but is also run directly from src/cli/index.ts during tests.
+   */
+  private readPackageVersion(): string {
+    const candidates = [
+      path.join(__dirname, '..', '..', 'package.json'),
+      path.join(__dirname, '..', '..', '..', 'package.json')
+    ];
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) {
+        const pkg = JSON.parse(fs.readFileSync(candidate, 'utf8'));
+        if (pkg && typeof pkg.version === 'string') return pkg.version;
+      }
+    }
+    return '0.0.0';
+  }
+
+  /**
    * Setup CLI commands and options
    */
   private setupCommands(): void {
     this.program
       .name('proxmox-cleanup')
       .description('Automated cleanup tool for unused Docker resources on Proxmox infrastructure')
-      .version(require('../../package.json').version);
+      .version(this.readPackageVersion());
 
     // Main cleanup command
     this.program
@@ -56,7 +76,7 @@ class ProxmoxCleanupCLI {
       .option('-d, --dry-run', 'Preview what would be removed without actually removing anything')
       .option('-t, --types <types>', 'Comma-separated list of resource types to clean (containers,images,volumes,networks)', 'all')
       .option('-p, --protect <patterns>', 'Comma-separated list of protection patterns (wildcards supported)', '')
-      .option('-b, --backup', 'Create backup before cleanup (enabled by default)', true)
+      .option('-b, --backup', 'Create backup before cleanup (enabled by default)')
       .option('--no-backup', 'Disable backup creation')
       .option('--backup-path <path>', 'Custom backup directory path', './backups')
       .option('-c, --config <path>', 'Path to configuration file')

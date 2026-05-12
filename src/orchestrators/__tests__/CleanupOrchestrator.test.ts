@@ -34,7 +34,6 @@ class MockDockerClient implements IDockerClient {
   async removeImage(): Promise<void> {}
   async removeVolume(): Promise<void> {}
   async removeNetwork(): Promise<void> {}
-  async pruneSystem(): Promise<any> { return {}; }
 }
 
 class MockResourceScanner implements IResourceScanner {
@@ -80,28 +79,16 @@ class MockResourceScanner implements IResourceScanner {
     this.dryRun = dryRun;
   }
 
-  async calculateResourceSizes(resources: Resource[]): Promise<Resource[]> {
+  calculateResourceSizes(resources: Resource[]): Resource[] {
     return resources;
   }
 
-  async calculateTotalSize(resources: Resource[]): Promise<number> {
+  calculateTotalSize(resources: Resource[]): number {
     return resources.reduce((total, r) => total + r.size, 0);
   }
 
   sortResourcesBySize(resources: Resource[]): Resource[] {
     return [...resources].sort((a, b) => b.size - a.size);
-  }
-
-  async getDiskSpaceBefore(): Promise<number> {
-    return 1000000000; // 1GB
-  }
-
-  async getDiskSpaceAfter(): Promise<number> {
-    return 1100000000; // 1.1GB (100MB freed)
-  }
-
-  verifySpaceFreed(): boolean {
-    return true;
   }
 }
 

@@ -141,138 +141,50 @@ describe('ProxmoxClient', () => {
 
       expect(() => new ProxmoxClient(configWithInvalidToken)).toThrow('Invalid token format');
     });
-  });
 
-  describe('Command Execution', () => {
-    beforeEach(async () => {
-      // Authenticate first
-      const mockAuthResponse = {
-        data: {
-          data: {
-            ticket: 'PVE:root@pam:12345678::ticket',
-            CSRFPreventionToken: 'csrf-token-123'
-          }
-        }
+    it('should route an API token to the PVEAPIToken header', async () => {
+      const configWithApiToken: ProxmoxConfig = {
+        host: 'proxmox.example.com',
+        token: 'root@pam!mytoken:abc-123-secret',
+        nodeId: 'node1'
       };
 
-      mockAxiosInstance.post.mockResolvedValue(mockAuthResponse);
-      await proxmoxClient.authenticate();
-      jest.clearAllMocks(); // Clear auth call
+      const clientWithApiToken = new ProxmoxClient(configWithApiToken);
+
+      mockAxiosInstance.get.mockResolvedValue({ data: { version: '8.0' } });
+
+      await clientWithApiToken.authenticate();
+
+      expect(clientWithApiToken.isAuthenticated()).toBe(true);
+      expect(mockAxiosInstance.defaults.headers.common['Authorization'])
+        .toBe('PVEAPIToken=root@pam!mytoken=abc-123-secret');
+      expect(mockAxiosInstance.post).not.toHaveBeenCalled();
     });
 
-    it('should execute command successfully', async () => {
-      const mockCommandResponse = {
-        data: {
-          data: {
-            stdout: 'Command output',
-            stderr: '',
-            exitstatus: 0
-          }
-        }
+    it('should route a legacy password containing "!" to /access/ticket', async () => {
+      const configWithBangPassword: ProxmoxConfig = {
+        host: 'proxmox.example.com',
+        token: 'root@pam:p@ss!word',
+        nodeId: 'node1'
       };
 
-      mockAxiosInstance.post.mockResolvedValue(mockCommandResponse);
+      const clientWithBangPassword = new ProxmoxClient(configWithBangPassword);
 
-      const result = await proxmoxClient.executeCommand('docker ps');
-
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/nodes/node1/execute', {
-        command: 'docker ps'
+      mockAxiosInstance.post.mockResolvedValue({
+        data: {
+          data: {
+            ticket: 'PVE:ticket',
+            CSRFPreventionToken: 'csrf'
+          }
+        }
       });
 
-      expect(result).toEqual({
-        stdout: 'Command output',
-        stderr: '',
-        exitCode: 0
+      await clientWithBangPassword.authenticate();
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/access/ticket', {
+        username: 'root@pam',
+        password: 'p@ss!word'
       });
-    });
-
-    it('should handle command execution errors', async () => {
-      const mockCommandResponse = {
-        data: {
-          data: {
-            stdout: '',
-            stderr: 'Command not found',
-            exitstatus: 127
-          }
-        }
-      };
-
-      mockAxiosInstance.post.mockResolvedValue(mockCommandResponse);
-
-      const result = await proxmoxClient.executeCommand('invalid-command');
-
-      expect(result).toEqual({
-        stdout: '',
-        stderr: 'Command not found',
-        exitCode: 127
-      });
-    });
-
-    it('should throw error when not authenticated', async () => {
-      const unauthenticatedClient = new ProxmoxClient(mockConfig);
-
-      await expect(unauthenticatedClient.executeCommand('docker ps')).rejects.toThrow(
-        'Proxmox client is not authenticated'
-      );
-    });
-  });
-
-  describe('Node Status', () => {
-    beforeEach(async () => {
-      // Authenticate first
-      const mockAuthResponse = {
-        data: {
-          data: {
-            ticket: 'PVE:root@pam:12345678::ticket',
-            CSRFPreventionToken: 'csrf-token-123'
-          }
-        }
-      };
-
-      mockAxiosInstance.post.mockResolvedValue(mockAuthResponse);
-      await proxmoxClient.authenticate();
-      jest.clearAllMocks(); // Clear auth call
-    });
-
-    it('should get node status successfully', async () => {
-      const mockStatusResponse = {
-        data: {
-          data: {
-            status: 'online',
-            uptime: 86400,
-            cpu: 0.25,
-            memory: {
-              used: 4000000000,
-              total: 8000000000
-            }
-          }
-        }
-      };
-
-      mockAxiosInstance.get.mockResolvedValue(mockStatusResponse);
-
-      const status = await proxmoxClient.getNodeStatus();
-
-      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/nodes/node1/status');
-      expect(status).toEqual({
-        status: 'online',
-        uptime: 86400,
-        cpu: 0.25,
-        memory: {
-          used: 4000000000,
-          total: 8000000000
-        }
-      });
-    });
-
-    it('should handle missing node status data', async () => {
-      const mockStatusResponse = {
-        data: {} // Missing 'data' field
-      };
-
-      mockAxiosInstance.get.mockResolvedValue(mockStatusResponse);
-
-      await expect(proxmoxClient.getNodeStatus()).rejects.toThrow('Invalid node status response');
     });
   });
 

@@ -2,8 +2,7 @@ import {
   ContainerResource,
   ImageResource,
   VolumeResource,
-  NetworkResource,
-  PruneResult
+  NetworkResource
 } from '../types';
 
 /**
@@ -59,9 +58,4 @@ export interface IDockerClient {
    * Remove a network by ID
    */
   removeNetwork(id: string): Promise<void>;
-
-  /**
-   * Prune unused Docker resources
-   */
-  pruneSystem(): Promise<PruneResult>;
 }

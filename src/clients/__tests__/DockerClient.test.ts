@@ -22,11 +22,7 @@ describe('DockerClient', () => {
       getContainer: jest.fn(),
       getImage: jest.fn(),
       getVolume: jest.fn(),
-      getNetwork: jest.fn(),
-      pruneContainers: jest.fn(),
-      pruneImages: jest.fn(),
-      pruneVolumes: jest.fn(),
-      pruneNetworks: jest.fn()
+      getNetwork: jest.fn()
     } as any;
 
     // Mock Docker constructor
@@ -222,43 +218,6 @@ describe('DockerClient', () => {
 
       expect(mockDocker.getNetwork).toHaveBeenCalledWith('network1');
       expect(mockNetwork.remove).toHaveBeenCalled();
-    });
-  });
-
-  describe('Prune Operations', () => {
-    beforeEach(async () => {
-      mockDocker.ping.mockResolvedValue({} as any);
-      await dockerClient.connect();
-    });
-
-    it('should prune system successfully', async () => {
-      mockDocker.pruneContainers.mockResolvedValue({
-        ContainersDeleted: ['c1', 'c2'],
-        SpaceReclaimed: 1000
-      } as any);
-
-      mockDocker.pruneImages.mockResolvedValue({
-        ImagesDeleted: ['i1'],
-        SpaceReclaimed: 5000
-      } as any);
-
-      mockDocker.pruneVolumes.mockResolvedValue({
-        VolumesDeleted: ['v1'],
-        SpaceReclaimed: 0
-      } as any);
-
-      mockDocker.pruneNetworks.mockResolvedValue({
-        NetworksDeleted: ['n1'],
-        SpaceReclaimed: 0
-      } as any);
-
-      const result = await dockerClient.pruneSystem();
-
-      expect(result.containersDeleted).toBe(2);
-      expect(result.imagesDeleted).toBe(1);
-      expect(result.volumesDeleted).toBe(1);
-      expect(result.networksDeleted).toBe(1);
-      expect(result.spaceReclaimed).toBe(6000);
     });
   });
 

@@ -46,72 +46,43 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
     const mode = this.config.cleanup.dryRun ? 'dry-run' : 'cleanup';
 
     try {
-      // Step 1: Connect to Docker
       await this.connectToDocker();
 
-      // Step 2: Scan for unused resources
       const scanResult = await this.scanResources();
       const allResources = this.flattenScanResult(scanResult);
 
       this.reporter.logOperationStart(mode, allResources.length);
 
-      // Step 3: Filter resources by type and protection patterns
-      const filteredResources = await this.filterResources(allResources);
+      const filteredResources = this.filterResources(allResources);
+      const sortedResources = this.resourceScanner.sortResourcesBySize(filteredResources);
 
-      // Step 4: Calculate accurate sizes
-      const resourcesWithSizes = await this.calculateResourceSizes(filteredResources);
-
-      // Step 5: Sort by size (largest first)
-      const sortedResources = this.resourceScanner.sortResourcesBySize(resourcesWithSizes);
-
-      // Step 6: Create backup if enabled
       if (this.config.cleanup.backupEnabled && !this.config.cleanup.dryRun) {
         await this.createBackup(sortedResources);
       }
 
-      // Step 7: Get disk space before cleanup
-      const diskSpaceBefore = await this.resourceScanner.getDiskSpaceBefore();
-
-      // Step 8: Perform cleanup (or dry-run)
       const cleanupResult = await this.performCleanup(sortedResources);
 
-      // Step 9: Get disk space after cleanup
-      const diskSpaceAfter = await this.resourceScanner.getDiskSpaceAfter();
-      const actualSpaceFreed = this.calculateSpaceFreed(diskSpaceBefore, diskSpaceAfter);
-
-      // Step 10: Verify space freed (if not dry-run)
-      if (!this.config.cleanup.dryRun) {
-        const predictedSpace = await this.resourceScanner.calculateTotalSize(cleanupResult.removed);
-        const spaceVerified = this.resourceScanner.verifySpaceFreed(predictedSpace, actualSpaceFreed);
-
-        if (!spaceVerified) {
-          this.reporter.getLogger().warn('Disk space verification failed', {
-            predicted: predictedSpace,
-            actual: actualSpaceFreed,
-            difference: Math.abs(predictedSpace - actualSpaceFreed)
-          });
-        }
-      }
-
-      // Step 11: Generate and save report
+      // diskSpaceFreed is the sum of the sizes reported by the Docker API
+      // for the resources we actually removed. Networks and volumes often
+      // report 0 (Engine doesn't expose their size), so this is a lower
+      // bound rather than a precise filesystem delta.
+      const diskSpaceFreed = this.resourceScanner.calculateTotalSize(cleanupResult.removed);
       const executionTime = Date.now() - startTime;
+
       const finalResult: CleanupResult = {
         ...cleanupResult,
-        diskSpaceFreed: this.config.cleanup.dryRun
-          ? await this.resourceScanner.calculateTotalSize(cleanupResult.removed)
-          : actualSpaceFreed
+        diskSpaceFreed,
+        executionTime
       };
 
       const report = this.reporter.generateReport(mode, allResources, finalResult, executionTime);
 
-      // Save report files
       await this.reporter.saveReport(report);
       await this.reporter.saveSummary(report);
 
       this.reporter.logOperationComplete(report);
 
       return report;
-
     } catch (error) {
       const executionTime = Date.now() - startTime;
       const errorResult: CleanupResult = {
@@ -138,16 +109,13 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
    * Execute dry-run workflow
    */
   async executeDryRun(): Promise<Report> {
-    // Temporarily set dry-run mode
     const originalDryRun = this.config.cleanup.dryRun;
     this.config.cleanup.dryRun = true;
     this.resourceScanner.setDryRun(true);
 
     try {
-      const report = await this.executeCleanup();
-      return report;
+      return await this.executeCleanup();
     } finally {
-      // Restore original dry-run setting
       this.config.cleanup.dryRun = originalDryRun;
       this.resourceScanner.setDryRun(originalDryRun);
     }
@@ -166,7 +134,6 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
   updateConfig(newConfig: Partial<CleanupConfig>): void {
     this.config = { ...this.config, ...newConfig };
 
-    // Update scanner dry-run mode if changed
     if (newConfig.cleanup?.dryRun !== undefined) {
       this.resourceScanner.setDryRun(newConfig.cleanup.dryRun);
     }
@@ -192,7 +159,7 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
       this.resourceScanner.scanNetworks()
     ]);
 
-    const totalSize = await this.resourceScanner.calculateTotalSize([
+    const totalSize = this.resourceScanner.calculateTotalSize([
       ...containers, ...images, ...volumes, ...networks
     ]);
 
@@ -218,24 +185,14 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
   }
 
   /**
-   * Filter resources by type and protection patterns
+   * Filter resources by type
    */
-  private async filterResources(resources: Resource[]): Promise<Resource[]> {
+  private filterResources(resources: Resource[]): Resource[] {
     const { resourceTypes } = this.config.cleanup;
-
-    // Filter by resource types if specified
     if (resourceTypes.length > 0) {
       return resources.filter(resource => resourceTypes.includes(resource.type));
     }
-
     return resources;
-  }
-
-  /**
-   * Calculate accurate sizes for resources
-   */
-  private async calculateResourceSizes(resources: Resource[]): Promise<Resource[]> {
-    return this.resourceScanner.calculateResourceSizes(resources);
   }
 
   /**
@@ -266,70 +223,35 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
   }
 
   /**
-   * Perform the actual cleanup or dry-run
+   * Perform the actual cleanup or dry-run.
+   * The scanner fetches the container list once for the whole batch
+   * rather than re-listing per resource.
    */
   private async performCleanup(resources: Resource[]): Promise<CleanupResult> {
-    const removed: Resource[] = [];
-    const skipped: Resource[] = [];
-    const errors: CleanupError[] = [];
+    const result = await this.resourceScanner.performCleanup(resources);
 
-    for (const resource of resources) {
-      try {
-        // Check if resource is still in use (safety check)
-        const inUse = await this.resourceScanner.isResourceInUse(resource);
-        if (inUse) {
-          skipped.push(resource);
-          this.reporter.logResourceSkip(resource, 'Resource is in use');
-          continue;
-        }
+    result.removed.forEach(r => this.reporter.logResourceRemoval(r, true));
+    result.skipped.forEach(r => this.reporter.logResourceSkip(r, 'Resource is in use'));
 
-        // Perform cleanup through scanner (handles dry-run mode)
-        const result = await this.resourceScanner.performCleanup([resource]);
-
-        removed.push(...result.removed);
-        skipped.push(...result.skipped);
-
-        // Log individual resource operations
-        result.removed.forEach(r => this.reporter.logResourceRemoval(r, true));
-        result.skipped.forEach(r => this.reporter.logResourceSkip(r, 'Skipped by scanner'));
-        result.errors.forEach(e => {
-          errors.push({
-            type: 'unknown',
-            message: e.error,
-            timestamp: new Date(),
-            recoverable: false,
-            resource: e.resource
-          });
-          this.reporter.logResourceRemoval(e.resource, false, e.error);
-        });
-
-      } catch (error) {
-        const cleanupError: CleanupError = {
-          type: 'unknown',
-          resource,
-          message: error instanceof Error ? error.message : String(error),
-          timestamp: new Date(),
-          recoverable: false
-        };
-
-        errors.push(cleanupError);
-        this.reporter.logResourceRemoval(resource, false, cleanupError.message);
+    const errors: CleanupError[] = result.errors.map(e => ({
+      type: 'unknown',
+      message: e.error,
+      timestamp: new Date(),
+      recoverable: false,
+      resource: e.resource
+    }));
+    errors.forEach(e => {
+      if (e.resource) {
+        this.reporter.logResourceRemoval(e.resource, false, e.message);
       }
-    }
+    });
 
     return {
-      removed,
-      skipped,
+      removed: result.removed,
+      skipped: result.skipped,
       errors,
-      diskSpaceFreed: 0, // Will be calculated later
-      executionTime: 0   // Will be set by caller
+      diskSpaceFreed: 0, // set by caller
+      executionTime: 0   // set by caller
     };
-  }
-
-  /**
-   * Calculate actual disk space freed
-   */
-  private calculateSpaceFreed(spaceBefore: number, spaceAfter: number): number {
-    return Math.max(0, spaceAfter - spaceBefore);
   }
 }

@@ -1,7 +1,15 @@
-import { ProxmoxConfig, CommandResult, NodeStatus, CleanupError } from '../types';
+import { ProxmoxConfig, CleanupError } from '../types';
 import { IProxmoxClient } from '../interfaces';
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import https from 'https';
+
+/**
+ * API-token shape: user@realm!tokenid:secret
+ * Requires `@realm`, then `!`, then `:` — in that order.
+ * Anything else is treated as legacy user@realm:password
+ * (so legacy passwords containing `!` route correctly).
+ */
+const API_TOKEN_PATTERN = /^[^:!]+@[^:!]+![^:]+:.+$/;
 
 /**
  * Proxmox API client implementation
@@ -20,12 +28,15 @@ export class ProxmoxClient implements IProxmoxClient {
   }
 
   /**
-   * Validate token format
+   * Validate token format. Accepts either an API token
+   * (user@realm!tokenid:secret) or a legacy user@realm:password.
    */
   private validateToken(token: string): void {
-    if (!token.includes(':') && !token.includes('!')) {
-      throw new Error('Invalid token format. Expected format: user@realm:password or user@realm!tokenid:secret');
-    }
+    if (API_TOKEN_PATTERN.test(token)) return;
+    if (token.includes('@') && token.includes(':')) return;
+    throw new Error(
+      'Invalid token format. Expected user@realm:password or user@realm!tokenid:secret'
+    );
   }
 
   /**
@@ -33,47 +44,36 @@ export class ProxmoxClient implements IProxmoxClient {
    */
   async authenticate(): Promise<void> {
     try {
-      // Check if token is API token format (contains ! for token ID)
-      if (this.config.token.includes('!')) {
-        // API Token authentication - use = instead of : for the secret part
-        const tokenParts = this.config.token.split(':');
-        if (tokenParts.length === 2) {
-          const tokenWithEquals = `${tokenParts[0]}=${tokenParts[1]}`;
-          const authHeader = `PVEAPIToken=${tokenWithEquals}`;
-          this.apiClient.defaults.headers.common['Authorization'] = authHeader;
-        } else {
-          throw new Error('Invalid API token format. Expected: user@realm!tokenid:secret');
-        }
-        
-        // Test the token by making a simple API call
+      if (API_TOKEN_PATTERN.test(this.config.token)) {
+        // API-token auth — Proxmox expects `=` between tokenid and secret
+        const [tokenId, secret] = this.splitOnce(this.config.token, ':');
+        this.apiClient.defaults.headers.common['Authorization'] =
+          `PVEAPIToken=${tokenId}=${secret}`;
+
         const response = await this.apiClient.get('/version');
-        
-        if (response.data) {
-          this.authenticated = true;
-          return;
-        } else {
+        if (!response.data) {
           throw new Error('Invalid API token response');
         }
-      } else {
-        // Username/password authentication (legacy)
-        const response = await this.apiClient.post('/access/ticket', {
-          username: this.extractUsername(this.config.token),
-          password: this.extractPassword(this.config.token)
-        });
-
-        if (response.data?.data) {
-          this.ticket = response.data.data.ticket;
-          this.csrfToken = response.data.data.CSRFPreventionToken;
-
-          // Update default headers for authenticated requests
-          this.apiClient.defaults.headers.common['Cookie'] = `PVEAuthCookie=${this.ticket}`;
-          this.apiClient.defaults.headers.common['CSRFPreventionToken'] = this.csrfToken;
-
-          this.authenticated = true;
-        } else {
-          throw new Error('Invalid authentication response');
-        }
+        this.authenticated = true;
+        return;
       }
+
+      // Legacy user@realm:password auth
+      const [username, password] = this.splitOnce(this.config.token, ':');
+      const response = await this.apiClient.post('/access/ticket', {
+        username,
+        password
+      });
+
+      if (!response.data?.data) {
+        throw new Error('Invalid authentication response');
+      }
+
+      this.ticket = response.data.data.ticket;
+      this.csrfToken = response.data.data.CSRFPreventionToken;
+      this.apiClient.defaults.headers.common['Cookie'] = `PVEAuthCookie=${this.ticket}`;
+      this.apiClient.defaults.headers.common['CSRFPreventionToken'] = this.csrfToken;
+      this.authenticated = true;
     } catch (error) {
       this.authenticated = false;
       const cleanupError = this.createError('authentication', 'Failed to authenticate with Proxmox API', error);
@@ -86,61 +86,6 @@ export class ProxmoxClient implements IProxmoxClient {
    */
   isAuthenticated(): boolean {
     return this.authenticated;
-  }
-
-  /**
-   * Execute command on Proxmox node
-   */
-  async executeCommand(command: string): Promise<CommandResult> {
-    this.ensureAuthenticated();
-
-    try {
-      const response = await this.retryApiCall(async () => {
-        return this.apiClient.post(`/nodes/${this.config.nodeId}/execute`, {
-          command
-        });
-      });
-
-      return {
-        stdout: response.data?.data?.stdout || '',
-        stderr: response.data?.data?.stderr || '',
-        exitCode: response.data?.data?.exitstatus || 0
-      };
-    } catch (error) {
-      const cleanupError = this.createError('unknown', `Failed to execute command: ${command}`, error);
-      throw new Error(cleanupError.message);
-    }
-  }
-
-  /**
-   * Get node status
-   */
-  async getNodeStatus(): Promise<NodeStatus> {
-    this.ensureAuthenticated();
-
-    try {
-      const response = await this.retryApiCall(async () => {
-        return this.apiClient.get(`/nodes/${this.config.nodeId}/status`);
-      });
-
-      const data = response.data?.data;
-      if (!data) {
-        throw new Error('Invalid node status response');
-      }
-
-      return {
-        status: data.status || 'unknown',
-        uptime: data.uptime || 0,
-        cpu: data.cpu || 0,
-        memory: {
-          used: data.memory?.used || 0,
-          total: data.memory?.total || 0
-        }
-      };
-    } catch (error) {
-      const cleanupError = this.createError('network', 'Failed to get node status', error);
-      throw new Error(cleanupError.message);
-    }
   }
 
   /**
@@ -158,7 +103,6 @@ export class ProxmoxClient implements IProxmoxClient {
       }
     });
 
-    // Add response interceptor for error handling
     this.apiClient.interceptors.response.use(
       (response) => response,
       (error) => {
@@ -166,7 +110,6 @@ export class ProxmoxClient implements IProxmoxClient {
           this.authenticated = false;
           this.ticket = undefined;
           this.csrfToken = undefined;
-          // Clear authorization headers on 401
           delete this.apiClient.defaults.headers.common['Authorization'];
           delete this.apiClient.defaults.headers.common['Cookie'];
           delete this.apiClient.defaults.headers.common['CSRFPreventionToken'];
@@ -177,47 +120,12 @@ export class ProxmoxClient implements IProxmoxClient {
   }
 
   /**
-   * Retry API calls with exponential backoff
+   * Split a string on the first occurrence of `sep`
    */
-  private async retryApiCall<T>(
-    apiCall: () => Promise<AxiosResponse<T>>,
-    maxRetries: number = 3,
-    baseDelay: number = 1000
-  ): Promise<AxiosResponse<T>> {
-    let lastError: unknown;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        return await apiCall();
-      } catch (error) {
-        lastError = error;
-
-        // Don't retry on authentication errors
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
-          throw error;
-        }
-
-        // Don't retry on client errors (4xx except 401)
-        if (axios.isAxiosError(error) &&
-            error.response?.status &&
-            error.response.status >= 400 &&
-            error.response.status < 500 &&
-            error.response.status !== 401) {
-          throw error;
-        }
-
-        // If this is the last attempt, throw the error
-        if (attempt === maxRetries) {
-          throw error;
-        }
-
-        // Calculate delay with exponential backoff
-        const delay = baseDelay * Math.pow(2, attempt);
-        await this.sleep(delay);
-      }
-    }
-
-    throw lastError;
+  private splitOnce(value: string, sep: string): [string, string] {
+    const idx = value.indexOf(sep);
+    if (idx < 0) return [value, ''];
+    return [value.slice(0, idx), value.slice(idx + sep.length)];
   }
 
   /**
@@ -248,49 +156,5 @@ export class ProxmoxClient implements IProxmoxClient {
       timestamp: new Date(),
       recoverable: type === 'network' || type === 'authentication'
     };
-  }
-
-  /**
-   * Sleep for specified milliseconds (can be mocked in tests)
-   */
-  private sleep(ms: number): Promise<void> {
-    if (process.env.NODE_ENV === 'test') {
-      // In test environment, don't actually sleep to avoid timeouts
-      return Promise.resolve();
-    }
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  /**
-   * Extract username from token
-   */
-  private extractUsername(token: string): string {
-    // Token format: username@realm:password or API token format
-    if (token.includes(':')) {
-      const parts = token.split(':');
-      return parts[0];
-    }
-    throw new Error('Invalid token format');
-  }
-
-  /**
-   * Extract password from token
-   */
-  private extractPassword(token: string): string {
-    // Token format: username@realm:password or API token format
-    if (token.includes(':')) {
-      const parts = token.split(':');
-      return parts.slice(1).join(':'); // Handle passwords with colons
-    }
-    throw new Error('Invalid token format');
-  }
-
-  /**
-   * Ensure client is authenticated before operations
-   */
-  private ensureAuthenticated(): void {
-    if (!this.authenticated) {
-      throw new Error('Proxmox client is not authenticated. Call authenticate() first.');
-    }
   }
 }
