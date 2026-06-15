@@ -61,12 +61,6 @@ const resourceArbitrary = fc.oneof(
 );
 
 describe('SizeCalculator Property Tests', () => {
-  let sizeCalculator: SizeCalculator;
-
-  beforeEach(() => {
-    sizeCalculator = new SizeCalculator();
-  });
-
   describe('Property 4: Size Calculation Accuracy', () => {
     // Feature: proxmox-cleanup, Property 4: Size Calculation Accuracy
     // Validates: Requirements 4.1, 4.2
@@ -75,7 +69,7 @@ describe('SizeCalculator Property Tests', () => {
         fc.property(
           fc.array(resourceArbitrary, { minLength: 1, maxLength: 10 }),
           (resources) => {
-            const totalSize = sizeCalculator.calculateTotalSize(resources);
+            const totalSize = SizeCalculator.calculateTotalSize(resources);
             const expectedTotal = resources.reduce((sum, r) => sum + r.size, 0);
 
             expect(totalSize).toBe(expectedTotal);
@@ -90,39 +84,12 @@ describe('SizeCalculator Property Tests', () => {
       );
     });
 
-    it('should return resources unchanged from updateResourceSizes', () => {
-      fc.assert(
-        fc.property(
-          fc.array(resourceArbitrary, { minLength: 1, maxLength: 5 }),
-          (resources) => {
-            const updatedResources = sizeCalculator.updateResourceSizes(resources);
-
-            expect(updatedResources).toHaveLength(resources.length);
-
-            updatedResources.forEach((updated: Resource, index: number) => {
-              expect(updated.id).toBe(resources[index].id);
-              expect(updated.type).toBe(resources[index].type);
-              expect(updated.name).toBe(resources[index].name);
-              expect(updated.size).toBe(resources[index].size);
-            });
-
-            updatedResources
-              .filter((r: Resource) => r.type === 'network')
-              .forEach((network: Resource) => {
-                expect(network.size).toBe(0);
-              });
-          }
-        ),
-        { numRuns: 100 }
-      );
-    });
-
     it('should sort resources correctly by size', () => {
       fc.assert(
         fc.property(
           fc.array(resourceArbitrary, { minLength: 2, maxLength: 10 }),
           (resources) => {
-            const sortedResources = sizeCalculator.sortResourcesBySize(resources);
+            const sortedResources = SizeCalculator.sortResourcesBySize(resources);
 
             expect(sortedResources).toHaveLength(resources.length);
 
@@ -149,7 +116,7 @@ describe('SizeCalculator Property Tests', () => {
           fc.array(resourceArbitrary, { minLength: 2, maxLength: 10 }),
           (resources) => {
             const originalOrder = resources.map(r => r.id);
-            sizeCalculator.sortResourcesBySize(resources);
+            SizeCalculator.sortResourcesBySize(resources);
             expect(resources.map(r => r.id)).toEqual(originalOrder);
           }
         ),

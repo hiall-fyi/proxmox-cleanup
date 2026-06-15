@@ -18,8 +18,7 @@ describe('ProxmoxClient', () => {
     // Create mock config
     mockConfig = {
       host: 'proxmox.example.com',
-      token: 'root@pam:password123',
-      nodeId: 'node1'
+      token: 'root@pam:password123'
     };
 
     // Create mock axios instance
@@ -107,8 +106,7 @@ describe('ProxmoxClient', () => {
     it('should parse complex tokens with colons in password', async () => {
       const configWithComplexToken: ProxmoxConfig = {
         host: 'proxmox.example.com',
-        token: 'root@pam:pass:word:123',
-        nodeId: 'node1'
+        token: 'root@pam:pass:word:123'
       };
 
       const clientWithComplexToken = new ProxmoxClient(configWithComplexToken);
@@ -135,8 +133,7 @@ describe('ProxmoxClient', () => {
     it('should throw error for invalid token format', () => {
       const configWithInvalidToken: ProxmoxConfig = {
         host: 'proxmox.example.com',
-        token: 'invalid-token-format',
-        nodeId: 'node1'
+        token: 'invalid-token-format'
       };
 
       expect(() => new ProxmoxClient(configWithInvalidToken)).toThrow('Invalid token format');
@@ -145,8 +142,7 @@ describe('ProxmoxClient', () => {
     it('should route an API token to the PVEAPIToken header', async () => {
       const configWithApiToken: ProxmoxConfig = {
         host: 'proxmox.example.com',
-        token: 'root@pam!mytoken:abc-123-secret',
-        nodeId: 'node1'
+        token: 'root@pam!mytoken:abc-123-secret'
       };
 
       const clientWithApiToken = new ProxmoxClient(configWithApiToken);
@@ -164,8 +160,7 @@ describe('ProxmoxClient', () => {
     it('should route a legacy password containing "!" to /access/ticket', async () => {
       const configWithBangPassword: ProxmoxConfig = {
         host: 'proxmox.example.com',
-        token: 'root@pam:p@ss!word',
-        nodeId: 'node1'
+        token: 'root@pam:p@ss!word'
       };
 
       const clientWithBangPassword = new ProxmoxClient(configWithBangPassword);

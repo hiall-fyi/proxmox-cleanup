@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { Backup, BackupResult, Resource } from '../types';
 import { IBackupManager } from '../interfaces';
+import { errorMessage } from '../utils/errors';
 
 /**
  * Backup manager implementation
@@ -45,11 +46,10 @@ export class BackupManager implements IBackupManager {
         backupPath
       };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
       return {
         success: false,
         backupPath: '',
-        error: `Failed to create backup: ${message}`
+        error: `Failed to create backup: ${errorMessage(error)}`
       };
     }
   }
@@ -62,8 +62,7 @@ export class BackupManager implements IBackupManager {
       const jsonContent = JSON.stringify(backup, null, 2);
       await fs.writeFile(filePath, jsonContent, 'utf-8');
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to save backup to ${filePath}: ${message}`);
+      throw new Error(`Failed to save backup to ${filePath}: ${errorMessage(error)}`);
     }
   }
 
@@ -87,8 +86,7 @@ export class BackupManager implements IBackupManager {
 
       return backup;
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to load backup from ${filePath}: ${message}`);
+      throw new Error(`Failed to load backup from ${filePath}: ${errorMessage(error)}`);
     }
   }
 

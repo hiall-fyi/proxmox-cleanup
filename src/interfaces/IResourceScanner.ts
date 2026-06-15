@@ -50,19 +50,4 @@ export interface IResourceScanner {
    * Set dry-run mode
    */
   setDryRun(dryRun: boolean): void;
-
-  /**
-   * Resources already carry sizes populated by the Docker API; pass through.
-   */
-  calculateResourceSizes(resources: Resource[]): Resource[];
-
-  /**
-   * Sum sizes across a list of resources
-   */
-  calculateTotalSize(resources: Resource[]): number;
-
-  /**
-   * Sort resources by size in descending order
-   */
-  sortResourcesBySize(resources: Resource[]): Resource[];
 }

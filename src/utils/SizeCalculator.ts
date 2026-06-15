@@ -13,23 +13,15 @@ export class SizeCalculator {
    * Sum resource sizes. Each resource already carries the best-known size
    * from the Docker API; this helper just aggregates.
    */
-  calculateTotalSize(resources: Resource[]): number {
+  static calculateTotalSize(resources: Resource[]): number {
     return resources.reduce((total, resource) => total + (resource.size || 0), 0);
   }
 
   /**
    * Sort resources by size in descending order
    */
-  sortResourcesBySize(resources: Resource[]): Resource[] {
+  static sortResourcesBySize(resources: Resource[]): Resource[] {
     return [...resources].sort((a, b) => b.size - a.size);
-  }
-
-  /**
-   * Return resources unchanged — sizes are populated at list time.
-   * Retained for interface compatibility with older callers.
-   */
-  updateResourceSizes(resources: Resource[]): Resource[] {
-    return resources;
   }
 
   /**

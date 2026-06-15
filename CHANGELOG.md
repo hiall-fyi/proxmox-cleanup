@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-06-15
+
+No change to how cleanup, dry-run, or backups behave. A security update, two options removed that never did anything, and some tidying behind the scenes.
+
+### Security
+
+- **Updated `dockerode` to 5.x** — clears three advisories that came in through its dependencies, including a high-severity gRPC crash. `npm audit` is back to 0 vulnerabilities. The Docker API this tool uses is unchanged, so nothing about how it talks to your daemon differs.
+
+### Removed
+
+- **Dropped the `--sort-by-size` flag on `list`** — it defaulted to on with no way to turn it off, so it never did anything you could observe. `list` still sorts largest-first, exactly as before.
+- **Dropped the `nodeId` config field and `--proxmox-node` flag** — nothing in the tool ever read them, so setting a node had no effect. You can remove `nodeId` from your `config.json`; if you leave it, it's ignored. If a future release adds node-specific operations, the setting comes back wired to a real feature.
+
+### Under the hood
+
+- **Less duplicated code, same behaviour** — error handling, the `list` and `cleanup` scan paths, and disk-size formatting now run through shared code instead of separate copies, so `list` always reflects exactly what a cleanup would act on. Around 350 fewer lines overall, with the full test suite still green.
+
 ## [1.2.1] - 2026-05-12
 
 ### Bug Fixes
@@ -83,6 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **One-line install** — `curl | bash` handles Node.js dependencies, build, global CLI setup, systemd service, config files, and log rotation.
 - **152 tests** — including property-based testing with fast-check for resource identification, safe removal, backup integrity, and report consistency.
 
+[1.3.0]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.3.0
 [1.2.1]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.2.1
 [1.2.0]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.2.0
 [1.1.1]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.1.1

@@ -9,6 +9,7 @@ import { Reporter } from '../reporters/Reporter';
 import { ProxmoxClient } from '../clients/ProxmoxClient';
 import { CleanupConfig, ResourceType, Resource, Report, CleanupError } from '../types';
 import { SizeCalculator } from '../utils/SizeCalculator';
+import { errorMessage } from '../utils/errors';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -26,8 +27,6 @@ interface CliOptions {
   logPath?: string;
   proxmoxHost?: string;
   proxmoxToken?: string;
-  proxmoxNode?: string;
-  sortBySize?: boolean;
 }
 
 /**
@@ -84,12 +83,11 @@ class ProxmoxCleanupCLI {
       .option('--log-path <path>', 'Custom log directory path', './logs')
       .option('--proxmox-host <host>', 'Proxmox host address')
       .option('--proxmox-token <token>', 'Proxmox API token (format: user@realm:password)')
-      .option('--proxmox-node <node>', 'Proxmox node ID')
       .action(async (options) => {
         try {
           await this.executeCleanup(options);
         } catch (error) {
-          console.error('❌ Cleanup failed:', error instanceof Error ? error.message : String(error));
+          console.error('❌ Cleanup failed:', errorMessage(error));
           process.exit(1);
         }
       });
@@ -105,12 +103,11 @@ class ProxmoxCleanupCLI {
       .option('--log-path <path>', 'Custom log directory path', './logs')
       .option('--proxmox-host <host>', 'Proxmox host address')
       .option('--proxmox-token <token>', 'Proxmox API token (format: user@realm:password)')
-      .option('--proxmox-node <node>', 'Proxmox node ID')
       .action(async (options) => {
         try {
           await this.executeDryRun(options);
         } catch (error) {
-          console.error('❌ Dry-run failed:', error instanceof Error ? error.message : String(error));
+          console.error('❌ Dry-run failed:', errorMessage(error));
           process.exit(1);
         }
       });
@@ -122,12 +119,11 @@ class ProxmoxCleanupCLI {
       .option('-t, --types <types>', 'Comma-separated list of resource types to list (containers,images,volumes,networks)', 'all')
       .option('-p, --protect <patterns>', 'Comma-separated list of protection patterns (wildcards supported)', '')
       .option('-c, --config <path>', 'Path to configuration file')
-      .option('--sort-by-size', 'Sort resources by size (largest first)', true)
       .action(async (options) => {
         try {
           await this.listResources(options);
         } catch (error) {
-          console.error('❌ List failed:', error instanceof Error ? error.message : String(error));
+          console.error('❌ List failed:', errorMessage(error));
           process.exit(1);
         }
       });
@@ -141,7 +137,7 @@ class ProxmoxCleanupCLI {
         try {
           await this.validateConfig(options);
         } catch (error) {
-          console.error('❌ Config validation failed:', error instanceof Error ? error.message : String(error));
+          console.error('❌ Config validation failed:', errorMessage(error));
           process.exit(1);
         }
       });
@@ -186,36 +182,13 @@ class ProxmoxCleanupCLI {
     console.log('📋 Listing unused Docker resources...\n');
 
     const config = await this.loadConfig(options);
+    const orchestrator = await this.createOrchestrator(config);
 
-    // Create components
-    const dockerClient = new DockerClient();
-    const resourceScanner = new ResourceScanner(dockerClient, config.cleanup.protectedPatterns);
+    // Shares the scan → type-filter → sort pipeline with cleanup, so the
+    // listing can never diverge from what a cleanup would actually act on.
+    const resources = await orchestrator.listUnused();
 
-    // Set dry-run mode for listing
-    resourceScanner.setDryRun(true);
-
-    // Connect and scan
-    await dockerClient.connect();
-
-    const [containers, images, volumes, networks] = await Promise.all([
-      resourceScanner.scanContainers(),
-      resourceScanner.scanImages(),
-      resourceScanner.scanVolumes(),
-      resourceScanner.scanNetworks()
-    ]);
-
-    const allResources = [...containers, ...images, ...volumes, ...networks];
-
-    // Filter by type
-    const filteredResources = this.filterResourcesByType(allResources, options.types);
-
-    // Sort by size if requested
-    const sortedResources = options.sortBySize
-      ? resourceScanner.sortResourcesBySize(filteredResources)
-      : filteredResources;
-
-    // Display results
-    this.displayResourceList(sortedResources);
+    this.displayResourceList(resources);
   }
 
   /**
@@ -248,7 +221,7 @@ class ProxmoxCleanupCLI {
       console.log('\n🎉 Configuration is valid!');
 
     } catch (error) {
-      throw new Error(`Configuration validation failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`Configuration validation failed: ${errorMessage(error)}`);
     }
   }
 
@@ -280,8 +253,7 @@ class ProxmoxCleanupCLI {
     return {
       proxmox: {
         host: '',
-        token: '',
-        nodeId: ''
+        token: ''
       },
       cleanup: {
         dryRun: false,
@@ -339,9 +311,6 @@ class ProxmoxCleanupCLI {
     if (options.proxmoxToken) {
       config.proxmox.token = options.proxmoxToken;
     }
-    if (options.proxmoxNode) {
-      config.proxmox.nodeId = options.proxmoxNode;
-    }
   }
 
   /**
@@ -372,18 +341,6 @@ class ProxmoxCleanupCLI {
     }
 
     return parsedTypes;
-  }
-
-  /**
-   * Filter resources by type
-   */
-  private filterResourcesByType(resources: Resource[], typesString: string | undefined): Resource[] {
-    if (!typesString || typesString === 'all') {
-      return resources;
-    }
-
-    const types = this.parseResourceTypes(typesString);
-    return resources.filter(resource => types.includes(resource.type));
   }
 
   /**
@@ -540,7 +497,7 @@ class ProxmoxCleanupCLI {
 if (require.main === module) {
   const cli = new ProxmoxCleanupCLI();
   cli.run().catch(error => {
-    console.error('❌ CLI Error:', error instanceof Error ? error.message : String(error));
+    console.error('❌ CLI Error:', errorMessage(error));
     process.exit(1);
   });
 }

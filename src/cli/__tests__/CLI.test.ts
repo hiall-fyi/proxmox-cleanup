@@ -71,8 +71,7 @@ describe('ProxmoxCleanupCLI', () => {
         '--verbose',
         '--log-path', '/custom/logs',
         '--proxmox-host', 'proxmox.example.com',
-        '--proxmox-token', 'root@pam:password',
-        '--proxmox-node', 'node1'
+        '--proxmox-token', 'root@pam:password'
       ];
 
       process.argv = testArgs;
@@ -92,8 +91,7 @@ describe('ProxmoxCleanupCLI', () => {
           verbose: true,
           logPath: '/custom/logs',
           proxmoxHost: 'proxmox.example.com',
-          proxmoxToken: 'root@pam:password',
-          proxmoxNode: 'node1'
+          proxmoxToken: 'root@pam:password'
         })
       );
     });
@@ -128,8 +126,7 @@ describe('ProxmoxCleanupCLI', () => {
         'node',
         'cli.js',
         'list',
-        '--types', 'images',
-        '--sort-by-size'
+        '--types', 'images'
       ];
 
       process.argv = testArgs;
@@ -140,8 +137,7 @@ describe('ProxmoxCleanupCLI', () => {
 
       expect(mockListResources).toHaveBeenCalledWith(
         expect.objectContaining({
-          types: 'images',
-          sortBySize: true
+          types: 'images'
         })
       );
     });
@@ -194,8 +190,7 @@ describe('ProxmoxCleanupCLI', () => {
       const mockConfig: CleanupConfig = {
         proxmox: {
           host: 'test-host',
-          token: 'test-token',
-          nodeId: 'test-node'
+          token: 'test-token'
         },
         cleanup: {
           dryRun: false,
@@ -228,8 +223,7 @@ describe('ProxmoxCleanupCLI', () => {
       expect(config).toEqual({
         proxmox: {
           host: '',
-          token: '',
-          nodeId: ''
+          token: ''
         },
         cleanup: {
           dryRun: false,
@@ -255,8 +249,7 @@ describe('ProxmoxCleanupCLI', () => {
         verbose: true,
         logPath: '/custom/logs',
         proxmoxHost: 'custom-host',
-        proxmoxToken: 'custom-token',
-        proxmoxNode: 'custom-node'
+        proxmoxToken: 'custom-token'
       };
 
       const config = await (cli as any).loadConfig(options);
@@ -270,7 +263,6 @@ describe('ProxmoxCleanupCLI', () => {
       expect(config.reporting.logPath).toBe('/custom/logs');
       expect(config.proxmox.host).toBe('custom-host');
       expect(config.proxmox.token).toBe('custom-token');
-      expect(config.proxmox.nodeId).toBe('custom-node');
     });
   });
 
@@ -302,35 +294,6 @@ describe('ProxmoxCleanupCLI', () => {
     });
   });
 
-  describe('Resource Filtering', () => {
-    const mockResources = [
-      { type: 'container', name: 'test-container', size: 1000 },
-      { type: 'image', name: 'test-image', size: 2000 },
-      { type: 'volume', name: 'test-volume', size: 3000 },
-      { type: 'network', name: 'test-network', size: 0 }
-    ];
-
-    it('should return all resources when types is "all"', () => {
-      const result = (cli as any).filterResourcesByType(mockResources, 'all');
-      expect(result).toEqual(mockResources);
-    });
-
-    it('should return all resources when types is empty', () => {
-      const result = (cli as any).filterResourcesByType(mockResources, '');
-      expect(result).toEqual(mockResources);
-    });
-
-    it('should filter by single resource type', () => {
-      const result = (cli as any).filterResourcesByType(mockResources, 'containers');
-      expect(result).toEqual([mockResources[0]]);
-    });
-
-    it('should filter by multiple resource types', () => {
-      const result = (cli as any).filterResourcesByType(mockResources, 'containers,images');
-      expect(result).toEqual([mockResources[0], mockResources[1]]);
-    });
-  });
-
   describe('Utility Functions', () => {
     it('should get correct resource icons', () => {
       expect((cli as any).getResourceIcon('container')).toBe('📦');
@@ -344,7 +307,7 @@ describe('ProxmoxCleanupCLI', () => {
   describe('Configuration Validation', () => {
     it('should validate correct configuration structure', () => {
       const validConfig: CleanupConfig = {
-        proxmox: { host: '', token: '', nodeId: '' },
+        proxmox: { host: '', token: '' },
         cleanup: {
           dryRun: false,
           resourceTypes: ['container', 'image'],
@@ -362,7 +325,7 @@ describe('ProxmoxCleanupCLI', () => {
 
     it('should throw error for missing sections', () => {
       const invalidConfig = {
-        proxmox: { host: '', token: '', nodeId: '' }
+        proxmox: { host: '', token: '' }
         // Missing cleanup and reporting sections
       };
 
@@ -373,7 +336,7 @@ describe('ProxmoxCleanupCLI', () => {
 
     it('should throw error for invalid resource types', () => {
       const invalidConfig: any = {
-        proxmox: { host: '', token: '', nodeId: '' },
+        proxmox: { host: '', token: '' },
         cleanup: {
           dryRun: false,
           resourceTypes: ['container', 'invalid-type'],

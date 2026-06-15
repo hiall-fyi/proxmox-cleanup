@@ -9,7 +9,7 @@ import {
 import { IResourceScanner } from '../interfaces';
 import { IDockerClient } from '../interfaces';
 import { ResourceFilter } from '../utils/ResourceFilter';
-import { SizeCalculator } from '../utils/SizeCalculator';
+import { errorMessage } from '../utils/errors';
 
 /**
  * Resource scanner implementation
@@ -176,7 +176,7 @@ export class ResourceScanner implements IResourceScanner {
       } catch (error) {
         errors.push({
           resource,
-          error: error instanceof Error ? error.message : String(error)
+          error: errorMessage(error)
         });
       }
     }
@@ -190,20 +190,5 @@ export class ResourceScanner implements IResourceScanner {
 
   setDryRun(dryRun: boolean): void {
     this.dryRun = dryRun;
-  }
-
-  /**
-   * Resources already carry sizes populated by the Docker API; pass through.
-   */
-  calculateResourceSizes(resources: Resource[]): Resource[] {
-    return new SizeCalculator().updateResourceSizes(resources);
-  }
-
-  calculateTotalSize(resources: Resource[]): number {
-    return new SizeCalculator().calculateTotalSize(resources);
-  }
-
-  sortResourcesBySize(resources: Resource[]): Resource[] {
-    return new SizeCalculator().sortResourcesBySize(resources);
   }
 }

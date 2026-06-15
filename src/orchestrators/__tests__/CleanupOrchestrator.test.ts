@@ -78,18 +78,6 @@ class MockResourceScanner implements IResourceScanner {
   setDryRun(dryRun: boolean): void {
     this.dryRun = dryRun;
   }
-
-  calculateResourceSizes(resources: Resource[]): Resource[] {
-    return resources;
-  }
-
-  calculateTotalSize(resources: Resource[]): number {
-    return resources.reduce((total, r) => total + r.size, 0);
-  }
-
-  sortResourcesBySize(resources: Resource[]): Resource[] {
-    return [...resources].sort((a, b) => b.size - a.size);
-  }
 }
 
 class MockBackupManager implements IBackupManager {
@@ -194,8 +182,7 @@ describe('CleanupOrchestrator Integration Tests', () => {
     mockConfig = {
       proxmox: {
         host: 'proxmox.example.com',
-        token: 'root@pam:password',
-        nodeId: 'node1'
+        token: 'root@pam:password'
       },
       cleanup: {
         dryRun: false,

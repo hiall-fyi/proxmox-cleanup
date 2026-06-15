@@ -1,15 +1,13 @@
-import { Resource, ResourceType } from '../types';
+import { Resource } from '../types';
 
 /**
- * Utility class for filtering resources based on protection patterns and types
+ * Utility class for filtering resources based on protection patterns
  */
 export class ResourceFilter {
   private protectedPatterns: string[];
-  private allowedTypes: ResourceType[];
 
-  constructor(protectedPatterns: string[] = [], allowedTypes: ResourceType[] = []) {
+  constructor(protectedPatterns: string[] = []) {
     this.protectedPatterns = protectedPatterns;
-    this.allowedTypes = allowedTypes;
   }
 
   /**
@@ -51,17 +49,9 @@ export class ResourceFilter {
 
   /**
    * Filter out protected resources from a list
-   * Also filters by resource type if allowedTypes is specified
    */
   filterProtected<T extends Resource>(resources: T[]): T[] {
-    let filtered = resources.filter(resource => !this.isProtected(resource));
-
-    // Apply type filtering if allowedTypes is specified
-    if (this.allowedTypes.length > 0) {
-      filtered = filtered.filter(resource => this.allowedTypes.includes(resource.type));
-    }
-
-    return filtered;
+    return resources.filter(resource => !this.isProtected(resource));
   }
 
   /**

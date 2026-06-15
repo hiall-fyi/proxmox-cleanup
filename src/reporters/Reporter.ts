@@ -1,5 +1,7 @@
 import { Resource, CleanupResult, Report } from '../types';
 import { SizeCalculator } from '../utils/SizeCalculator';
+import { errorMessage } from '../utils/errors';
+import { isoSlug } from '../utils/time';
 import * as fs from 'fs';
 import * as path from 'path';
 import winston from 'winston';
@@ -114,8 +116,7 @@ export class Reporter {
 
     // Generate filename if not provided
     if (!filename) {
-      const timestamp = report.timestamp.toISOString().replace(/[:.]/g, '-');
-      filename = `cleanup-report-${report.mode}-${timestamp}.json`;
+      filename = `cleanup-report-${report.mode}-${isoSlug(report.timestamp)}.json`;
     }
 
     const filePath = path.join(this.logPath, filename);
@@ -126,9 +127,9 @@ export class Reporter {
       this.logger.info(`Report saved to ${filePath}`);
       return filePath;
     } catch (error) {
-      const errorMessage = `Failed to save report: ${error instanceof Error ? error.message : String(error)}`;
-      this.logger.error(errorMessage);
-      throw new Error(errorMessage);
+      const message = `Failed to save report: ${errorMessage(error)}`;
+      this.logger.error(message);
+      throw new Error(message);
     }
   }
 
@@ -141,8 +142,7 @@ export class Reporter {
 
     // Generate filename if not provided
     if (!filename) {
-      const timestamp = report.timestamp.toISOString().replace(/[:.]/g, '-');
-      filename = `cleanup-summary-${report.mode}-${timestamp}.txt`;
+      filename = `cleanup-summary-${report.mode}-${isoSlug(report.timestamp)}.txt`;
     }
 
     const filePath = path.join(this.logPath, filename);
@@ -153,9 +153,9 @@ export class Reporter {
       this.logger.info(`Summary saved to ${filePath}`);
       return filePath;
     } catch (error) {
-      const errorMessage = `Failed to save summary: ${error instanceof Error ? error.message : String(error)}`;
-      this.logger.error(errorMessage);
-      throw new Error(errorMessage);
+      const message = `Failed to save summary: ${errorMessage(error)}`;
+      this.logger.error(message);
+      throw new Error(message);
     }
   }
 

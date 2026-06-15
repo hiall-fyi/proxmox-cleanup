@@ -48,9 +48,7 @@ export class DockerClient implements IDockerClient {
    * Passes `size: true` so Docker populates SizeRw for each container.
    */
   async listContainers(all: boolean = true): Promise<ContainerResource[]> {
-    this.ensureConnected();
-
-    try {
+    return this.listResources('containers', async () => {
       const containers = await this.docker.listContainers({ all, size: true });
 
       return containers.map(container => ({
@@ -68,19 +66,14 @@ export class DockerClient implements IDockerClient {
           ?.filter(m => m.Type === 'volume' && m.Name)
           .map(m => m.Name as string) || []
       }));
-    } catch (error) {
-      const cleanupError = this.createError('unknown', 'Failed to list containers', error);
-      throw new Error(cleanupError.message);
-    }
+    });
   }
 
   /**
    * List all images
    */
   async listImages(): Promise<ImageResource[]> {
-    this.ensureConnected();
-
-    try {
+    return this.listResources('images', async () => {
       const images = await this.docker.listImages({ all: true });
 
       return images.map(image => {
@@ -99,19 +92,14 @@ export class DockerClient implements IDockerClient {
           usedByContainers: [] // Will be populated by scanner
         };
       });
-    } catch (error) {
-      const cleanupError = this.createError('unknown', 'Failed to list images', error);
-      throw new Error(cleanupError.message);
-    }
+    });
   }
 
   /**
    * List all volumes
    */
   async listVolumes(): Promise<VolumeResource[]> {
-    this.ensureConnected();
-
-    try {
+    return this.listResources('volumes', async () => {
       const result = await this.docker.listVolumes();
       const volumes = result.Volumes || [];
 
@@ -125,19 +113,14 @@ export class DockerClient implements IDockerClient {
         mountPoint: volume.Mountpoint,
         usedByContainers: [] // Will be populated by scanner
       }));
-    } catch (error) {
-      const cleanupError = this.createError('unknown', 'Failed to list volumes', error);
-      throw new Error(cleanupError.message);
-    }
+    });
   }
 
   /**
    * List all networks
    */
   async listNetworks(): Promise<NetworkResource[]> {
-    this.ensureConnected();
-
-    try {
+    return this.listResources('networks', async () => {
       const networks = await this.docker.listNetworks();
 
       return networks.map(network => ({
@@ -150,99 +133,78 @@ export class DockerClient implements IDockerClient {
         driver: network.Driver,
         connectedContainers: Object.keys(network.Containers || {})
       }));
-    } catch (error) {
-      const cleanupError = this.createError('unknown', 'Failed to list networks', error);
-      throw new Error(cleanupError.message);
-    }
+    });
   }
 
   /**
    * Remove a container by ID
    */
   async removeContainer(id: string): Promise<void> {
-    this.ensureConnected();
-
-    try {
-      const container = this.docker.getContainer(id);
-      await container.remove({ force: true });
-    } catch (error: unknown) {
-      if ((error as { statusCode?: number }).statusCode === 404) {
-        const cleanupError = this.createError('resource_not_found', `Container ${id} not found`, error);
-        throw new Error(cleanupError.message);
-      }
-      const cleanupError = this.createError('unknown', `Failed to remove container ${id}`, error);
-      throw new Error(cleanupError.message);
-    }
+    return this.removeResource('Container', id, () =>
+      this.docker.getContainer(id).remove({ force: true })
+    );
   }
 
   /**
    * Remove an image by ID
    */
   async removeImage(id: string): Promise<void> {
-    this.ensureConnected();
-
-    try {
-      const image = this.docker.getImage(id);
-      await image.remove({ force: true });
-    } catch (error: unknown) {
-      const statusCode = (error as { statusCode?: number }).statusCode;
-      if (statusCode === 404) {
-        const cleanupError = this.createError('resource_not_found', `Image ${id} not found`, error);
-        throw new Error(cleanupError.message);
-      }
-      if (statusCode === 409) {
-        const cleanupError = this.createError('resource_in_use', `Image ${id} is in use`, error);
-        throw new Error(cleanupError.message);
-      }
-      const cleanupError = this.createError('unknown', `Failed to remove image ${id}`, error);
-      throw new Error(cleanupError.message);
-    }
+    return this.removeResource('Image', id, () =>
+      this.docker.getImage(id).remove({ force: true })
+    );
   }
 
   /**
    * Remove a volume by name
    */
   async removeVolume(name: string): Promise<void> {
-    this.ensureConnected();
-
-    try {
-      const volume = this.docker.getVolume(name);
-      await volume.remove();
-    } catch (error: unknown) {
-      const statusCode = (error as { statusCode?: number }).statusCode;
-      if (statusCode === 404) {
-        const cleanupError = this.createError('resource_not_found', `Volume ${name} not found`, error);
-        throw new Error(cleanupError.message);
-      }
-      if (statusCode === 409) {
-        const cleanupError = this.createError('resource_in_use', `Volume ${name} is in use`, error);
-        throw new Error(cleanupError.message);
-      }
-      const cleanupError = this.createError('unknown', `Failed to remove volume ${name}`, error);
-      throw new Error(cleanupError.message);
-    }
+    return this.removeResource('Volume', name, () =>
+      this.docker.getVolume(name).remove()
+    );
   }
 
   /**
    * Remove a network by ID
    */
   async removeNetwork(id: string): Promise<void> {
-    this.ensureConnected();
+    return this.removeResource('Network', id, () =>
+      this.docker.getNetwork(id).remove()
+    );
+  }
 
+  /**
+   * Run a list operation behind the shared connected-guard + error wrapper.
+   */
+  private async listResources<T>(label: string, fetch: () => Promise<T>): Promise<T> {
+    this.ensureConnected();
     try {
-      const network = this.docker.getNetwork(id);
-      await network.remove();
+      return await fetch();
+    } catch (error) {
+      const cleanupError = this.createError('unknown', `Failed to list ${label}`, error);
+      throw new Error(cleanupError.message);
+    }
+  }
+
+  /**
+   * Run a remove operation behind the shared connected-guard, mapping the
+   * Docker daemon's 404 (not found) and 409 (in use) status codes to typed
+   * cleanup errors.
+   */
+  private async removeResource(kind: string, id: string, remove: () => Promise<unknown>): Promise<void> {
+    this.ensureConnected();
+    try {
+      await remove();
     } catch (error: unknown) {
       const statusCode = (error as { statusCode?: number }).statusCode;
       if (statusCode === 404) {
-        const cleanupError = this.createError('resource_not_found', `Network ${id} not found`, error);
+        const cleanupError = this.createError('resource_not_found', `${kind} ${id} not found`, error);
         throw new Error(cleanupError.message);
       }
       if (statusCode === 409) {
-        const cleanupError = this.createError('resource_in_use', `Network ${id} is in use`, error);
+        const cleanupError = this.createError('resource_in_use', `${kind} ${id} is in use`, error);
         throw new Error(cleanupError.message);
       }
-      const cleanupError = this.createError('unknown', `Failed to remove network ${id}`, error);
+      const cleanupError = this.createError('unknown', `Failed to remove ${kind.toLowerCase()} ${id}`, error);
       throw new Error(cleanupError.message);
     }
   }

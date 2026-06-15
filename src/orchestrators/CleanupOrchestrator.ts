@@ -2,7 +2,6 @@ import {
   CleanupConfig,
   CleanupResult,
   Resource,
-  ResourceScanResult,
   Report,
   CleanupError
 } from '../types';
@@ -13,6 +12,8 @@ import {
   IReporter,
   ICleanupOrchestrator
 } from '../interfaces';
+import { SizeCalculator } from '../utils/SizeCalculator';
+import { errorMessage } from '../utils/errors';
 
 /**
  * Main orchestrator that coordinates the cleanup workflow
@@ -48,13 +49,12 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
     try {
       await this.connectToDocker();
 
-      const scanResult = await this.scanResources();
-      const allResources = this.flattenScanResult(scanResult);
+      const allResources = await this.scanAll();
 
       this.reporter.logOperationStart(mode, allResources.length);
 
       const filteredResources = this.filterResources(allResources);
-      const sortedResources = this.resourceScanner.sortResourcesBySize(filteredResources);
+      const sortedResources = SizeCalculator.sortResourcesBySize(filteredResources);
 
       if (this.config.cleanup.backupEnabled && !this.config.cleanup.dryRun) {
         await this.createBackup(sortedResources);
@@ -66,7 +66,7 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
       // for the resources we actually removed. Networks and volumes often
       // report 0 (Engine doesn't expose their size), so this is a lower
       // bound rather than a precise filesystem delta.
-      const diskSpaceFreed = this.resourceScanner.calculateTotalSize(cleanupResult.removed);
+      const diskSpaceFreed = SizeCalculator.calculateTotalSize(cleanupResult.removed);
       const executionTime = Date.now() - startTime;
 
       const finalResult: CleanupResult = {
@@ -90,7 +90,7 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
         skipped: [],
         errors: [{
           type: 'unknown',
-          message: error instanceof Error ? error.message : String(error),
+          message: errorMessage(error),
           timestamp: new Date(),
           recoverable: false
         }],
@@ -149,9 +149,9 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
   }
 
   /**
-   * Scan for unused resources
+   * Scan every resource type and return them as a single flat list.
    */
-  private async scanResources(): Promise<ResourceScanResult> {
+  private async scanAll(): Promise<Resource[]> {
     const [containers, images, volumes, networks] = await Promise.all([
       this.resourceScanner.scanContainers(),
       this.resourceScanner.scanImages(),
@@ -159,29 +159,20 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
       this.resourceScanner.scanNetworks()
     ]);
 
-    const totalSize = this.resourceScanner.calculateTotalSize([
-      ...containers, ...images, ...volumes, ...networks
-    ]);
-
-    return {
-      containers,
-      images,
-      volumes,
-      networks,
-      totalSize
-    };
+    return [...containers, ...images, ...volumes, ...networks];
   }
 
   /**
-   * Flatten scan result into a single array of resources
+   * List unused resources without removing anything: scan, filter by the
+   * configured resource types, and sort largest-first. Shares the scan +
+   * filter + sort pipeline with executeCleanup so the `list` command can
+   * never drift from what cleanup would actually act on.
    */
-  private flattenScanResult(scanResult: ResourceScanResult): Resource[] {
-    return [
-      ...scanResult.containers,
-      ...scanResult.images,
-      ...scanResult.volumes,
-      ...scanResult.networks
-    ];
+  async listUnused(): Promise<Resource[]> {
+    await this.connectToDocker();
+    const allResources = await this.scanAll();
+    const filtered = this.filterResources(allResources);
+    return SizeCalculator.sortResourcesBySize(filtered);
   }
 
   /**
@@ -216,7 +207,7 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
         resources.length,
         '',
         false,
-        error instanceof Error ? error.message : String(error)
+        errorMessage(error)
       );
       throw error;
     }

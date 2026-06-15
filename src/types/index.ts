@@ -45,7 +45,6 @@ export interface NetworkResource extends Resource {
 export interface ProxmoxConfig {
   host: string;
   token: string;
-  nodeId: string;
 }
 
 export interface CleanupOptions {
@@ -68,14 +67,6 @@ export interface CleanupConfig {
 }
 
 // Result Types
-export interface ResourceScanResult {
-  containers: ContainerResource[];
-  images: ImageResource[];
-  volumes: VolumeResource[];
-  networks: NetworkResource[];
-  totalSize: number;
-}
-
 export interface CleanupError {
   type: ErrorType;
   resource?: Resource;

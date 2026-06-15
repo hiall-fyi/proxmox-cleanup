@@ -1,8 +1,7 @@
 {
   "proxmox": {
     "host": "proxmox.example.com",
-    "token": "root@pam:your-api-token-here",
-    "nodeId": "node1"
+    "token": "root@pam:your-api-token-here"
   },
   "cleanup": {
     "dryRun": false,

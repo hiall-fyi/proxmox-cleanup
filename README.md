@@ -6,7 +6,7 @@
 ![Proxmox](https://img.shields.io/badge/Proxmox-VE%208.x-E57000?style=for-the-badge&logo=proxmox&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue?style=for-the-badge&logo=typescript&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-24.x-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 <!-- Status Badges -->
-![Version](https://img.shields.io/badge/Version-1.2.1-purple?style=for-the-badge) ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge) ![Maintained](https://img.shields.io/badge/Maintained-Yes-green.svg?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.3.0-purple?style=for-the-badge) ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge) ![Maintained](https://img.shields.io/badge/Maintained-Yes-green.svg?style=for-the-badge)
 
 <!-- Community Badges -->
 ![GitHub stars](https://img.shields.io/github/stars/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github) ![GitHub forks](https://img.shields.io/github/forks/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github) ![GitHub issues](https://img.shields.io/github/issues/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github) ![GitHub last commit](https://img.shields.io/github/last-commit/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github)
@@ -127,8 +127,7 @@ Create a `config.json` file (see `config.example.json`):
 {
   "proxmox": {
     "host": "proxmox.example.com",
-    "token": "root@pam:your-api-token",
-    "nodeId": "node1"
+    "token": "root@pam:your-api-token"
   },
   "cleanup": {
     "dryRun": false,
@@ -205,7 +204,6 @@ Options:
   -v, --verbose                    Enable verbose logging
   --proxmox-host <host>            Proxmox host address
   --proxmox-token <token>          Proxmox API token
-  --proxmox-node <node>            Proxmox node ID
 ```
 
 ### `dry-run`
@@ -218,13 +216,15 @@ proxmox-cleanup dry-run [options]
 
 ### `list`
 
-List unused Docker resources without removing them.
+List unused Docker resources without removing them. Results are grouped by type and sorted largest-first.
 
 ```bash
 proxmox-cleanup list [options]
 
 Options:
-  --sort-by-size                   Sort by size (largest first)
+  -t, --types <types>              Resource types to list (containers,images,volumes,networks)
+  -p, --protect <patterns>         Protection patterns (wildcards supported)
+  -c, --config <path>              Path to configuration file
 ```
 
 ### `validate-config`
@@ -252,8 +252,8 @@ proxmox-cleanup cleanup
 # Clean specific types without backup
 proxmox-cleanup cleanup --types volumes --no-backup
 
-# List all unused resources sorted by size
-proxmox-cleanup list --sort-by-size
+# List all unused resources (sorted largest-first)
+proxmox-cleanup list
 
 # Verbose mode for troubleshooting
 proxmox-cleanup cleanup --verbose -c /etc/proxmox-cleanup/config.json
