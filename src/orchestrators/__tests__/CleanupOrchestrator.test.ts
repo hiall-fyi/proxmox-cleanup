@@ -137,7 +137,8 @@ class MockReporter implements IReporter {
       details: {
         removed: result.removed,
         skipped: result.skipped,
-        errors: result.errors
+        errors: result.errors,
+        skippedUnknownAge: result.skippedUnknownAge
       }
     };
     this.reports.push(report);
@@ -525,6 +526,92 @@ describe('CleanupOrchestrator Integration Tests', () => {
       );
 
       await expect(orchestrator.executeCleanup()).rejects.toThrow('Scan failed');
+    });
+  });
+
+  describe('--older-than age filtering', () => {
+    const now = Date.now();
+    const makeConfig = (minAge?: string): CleanupConfig => ({
+      proxmox: { host: '', token: '' },
+      cleanup: { dryRun: true, resourceTypes: [], protectedPatterns: [], backupEnabled: false, backupPath: './b', minAge },
+      reporting: { verbose: false, logPath: './logs' }
+    });
+
+    it('removes only resources older than the threshold in dry-run', async () => {
+      const resources: Resource[] = [
+        { id: 'old', name: 'old', type: 'image', size: 1, createdAt: new Date(now - 10 * 86_400_000), tags: [] },
+        { id: 'new', name: 'new', type: 'image', size: 1, createdAt: new Date(now - 1 * 86_400_000), tags: [] }
+      ];
+      const orch = new CleanupOrchestrator(
+        new MockDockerClient(),
+        new MockResourceScanner(resources),
+        new MockBackupManager(),
+        new MockReporter(),
+        makeConfig('7d')
+      );
+      const report = await orch.executeDryRun();
+      expect(report.details.removed.map(r => r.id)).toEqual(['old']);
+    });
+
+    it('surfaces unknown-age resources as skipped, never removed', async () => {
+      const resources: Resource[] = [
+        { id: 'vol', name: 'vol', type: 'volume', size: 0, createdAt: undefined, tags: [] }
+      ];
+      const orch = new CleanupOrchestrator(
+        new MockDockerClient(),
+        new MockResourceScanner(resources),
+        new MockBackupManager(),
+        new MockReporter(),
+        makeConfig('7d')
+      );
+      const report = await orch.executeDryRun();
+      expect(report.details.removed).toHaveLength(0);
+      // Dedicated channel — NOT report.details.skipped (which feeds success-rate).
+      expect(report.details.skippedUnknownAge?.map(r => r.id)).toContain('vol');
+      expect(report.details.skipped).toHaveLength(0);
+    });
+
+    it('throws on an invalid duration before connecting to Docker', async () => {
+      const orch = new CleanupOrchestrator(
+        new MockDockerClient(),
+        new MockResourceScanner([]),
+        new MockBackupManager(),
+        new MockReporter(),
+        makeConfig('nonsense')
+      );
+      await expect(orch.executeDryRun()).rejects.toThrow(/Invalid duration/);
+    });
+
+    it('does no age filtering when minAge is unset', async () => {
+      const resources: Resource[] = [
+        { id: 'new', name: 'new', type: 'image', size: 1, createdAt: new Date(now), tags: [] }
+      ];
+      const orch = new CleanupOrchestrator(
+        new MockDockerClient(),
+        new MockResourceScanner(resources),
+        new MockBackupManager(),
+        new MockReporter(),
+        makeConfig(undefined)
+      );
+      const report = await orch.executeDryRun();
+      expect(report.details.removed.map(r => r.id)).toEqual(['new']);
+    });
+
+    it('listUnused respects age filter, returning only age-eligible resources', async () => {
+      const resources: Resource[] = [
+        { id: 'old', name: 'old', type: 'image', size: 100, createdAt: new Date(now - 10 * 86_400_000), tags: [] },
+        { id: 'new', name: 'new', type: 'image', size: 200, createdAt: new Date(now - 1 * 86_400_000), tags: [] }
+      ];
+      const orch = new CleanupOrchestrator(
+        new MockDockerClient(),
+        new MockResourceScanner(resources),
+        new MockBackupManager(),
+        new MockReporter(),
+        makeConfig('7d')
+      );
+      const result = await orch.listUnused();
+      // listUnused shares the same filter + sort pipeline as cleanup, so only 'old' should be returned.
+      expect(result.map(r => r.id)).toEqual(['old']);
     });
   });
 });

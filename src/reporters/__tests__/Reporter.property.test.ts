@@ -3,6 +3,7 @@ import { Resource, CleanupResult } from '../../types';
 import * as fc from 'fast-check';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as winston from 'winston';
 
 // Arbitraries for generating test data
 const resourceArbitrary = fc.record({
@@ -343,6 +344,58 @@ describe('Reporter Property Tests', () => {
       expect(filePath1).not.toBe(filePath2);
       expect(fs.existsSync(filePath1)).toBe(true);
       expect(fs.existsSync(filePath2)).toBe(true);
+    });
+  });
+
+  describe('Reporter console silencing', () => {
+    it('silences the Console transport when silentConsole is true, keeps file transports', () => {
+      const reporter = new Reporter('./logs', true);
+      const logger = reporter.getLogger();
+      const consoleTransport = logger.transports.find(
+        t => t instanceof winston.transports.Console
+      ) as winston.transports.ConsoleTransportInstance;
+      const fileTransports = logger.transports.filter(
+        t => t instanceof winston.transports.File
+      );
+      expect(consoleTransport.silent).toBe(true);
+      expect(fileTransports.length).toBe(2);
+    });
+
+    it('leaves the Console transport audible by default', () => {
+      const reporter = new Reporter('./logs');
+      const logger = reporter.getLogger();
+      const consoleTransport = logger.transports.find(
+        t => t instanceof winston.transports.Console
+      ) as winston.transports.ConsoleTransportInstance;
+      expect(consoleTransport.silent).toBeFalsy();
+    });
+  });
+
+  describe('Reporter skippedUnknownAge surface', () => {
+    const reporter = new Reporter('./logs', true); // silent console for test noise
+
+    const baseResult = (over: Partial<CleanupResult>): CleanupResult => ({
+      removed: [], skipped: [], errors: [], diskSpaceFreed: 0, executionTime: 0, ...over
+    });
+
+    it('carries skippedUnknownAge into the report details', () => {
+      const vol = { id: 'v', name: 'v', type: 'volume' as const, size: 0, tags: [] };
+      const result = baseResult({
+        removed: [{ id: 'i', name: 'i', type: 'image', size: 5, tags: [] }],
+        skippedUnknownAge: [vol]
+      });
+      const report = reporter.generateReport('cleanup', [], result, 1);
+      expect(report.details.skippedUnknownAge).toEqual([vol]);
+    });
+
+    it('excludes unknown-age from the success-rate denominator', () => {
+      const removed = [{ id: 'i', name: 'i', type: 'image' as const, size: 5, tags: [] }];
+      const unknown = Array.from({ length: 9 }, (_, n) => ({
+        id: `v${n}`, name: `v${n}`, type: 'volume' as const, size: 0, tags: []
+      }));
+      const report = reporter.generateReport('cleanup', [], baseResult({ removed, skippedUnknownAge: unknown }), 1);
+      // 1 removed, 0 skipped(in-use), 0 errors => 100%, NOT 1/10.
+      expect(reporter.generateSummary(report)).toContain('Success Rate: 100.0%');
     });
   });
 });

@@ -103,16 +103,19 @@ export class DockerClient implements IDockerClient {
       const result = await this.docker.listVolumes();
       const volumes = result.Volumes || [];
 
-      return volumes.map(volume => ({
-        id: volume.Name,
-        name: volume.Name,
-        type: 'volume' as const,
-        size: 0, // Docker API doesn't provide volume size directly
-        createdAt: new Date((volume as Docker.VolumeInspectInfo & { CreatedAt?: string }).CreatedAt || Date.now()),
-        tags: volume.Labels ? Object.keys(volume.Labels) : [],
-        mountPoint: volume.Mountpoint,
-        usedByContainers: [] // Will be populated by scanner
-      }));
+      return volumes.map(volume => {
+        const rawCreated = (volume as Docker.VolumeInspectInfo & { CreatedAt?: string }).CreatedAt;
+        return {
+          id: volume.Name,
+          name: volume.Name,
+          type: 'volume' as const,
+          size: 0, // Docker API doesn't provide volume size directly
+          createdAt: rawCreated ? new Date(rawCreated) : undefined,
+          tags: volume.Labels ? Object.keys(volume.Labels) : [],
+          mountPoint: volume.Mountpoint,
+          usedByContainers: [] // Will be populated by scanner
+        };
+      });
     });
   }
 
@@ -128,7 +131,7 @@ export class DockerClient implements IDockerClient {
         name: network.Name,
         type: 'network' as const,
         size: 0, // Networks don't have size
-        createdAt: new Date(network.Created || Date.now()),
+        createdAt: network.Created ? new Date(network.Created) : undefined,
         tags: network.Labels ? Object.keys(network.Labels) : [],
         driver: network.Driver,
         connectedContainers: Object.keys(network.Containers || {})

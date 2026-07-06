@@ -264,6 +264,16 @@ describe('ProxmoxCleanupCLI', () => {
       expect(config.proxmox.host).toBe('custom-host');
       expect(config.proxmox.token).toBe('custom-token');
     });
+
+    it('should map --older-than to config.cleanup.minAge', async () => {
+      const options = {
+        olderThan: '14d'
+      };
+
+      const config = await (cli as any).loadConfig(options);
+
+      expect(config.cleanup.minAge).toBe('14d');
+    });
   });
 
   describe('Resource Type Parsing', () => {
@@ -409,6 +419,147 @@ describe('ProxmoxCleanupCLI', () => {
       const options = { config: '/path/to/config.json' };
 
       await expect((cli as any).loadConfig(options)).rejects.toThrow();
+    });
+  });
+
+  describe('--json output', () => {
+    // Helper: the CLI's createOrchestrator is mocked (jest.mock at top of file).
+    // Configure the mocked orchestrator's methods per test via the mock class.
+    const { CleanupOrchestrator } = jest.requireMock('../../orchestrators/CleanupOrchestrator');
+
+    it('list --json emits a single valid JSON document with summary and no emoji', async () => {
+      const resources = [
+        { id: 'i1', name: 'img', type: 'image', size: 100, tags: [] }
+      ];
+      CleanupOrchestrator.prototype.listUnused = jest.fn().mockResolvedValue(resources);
+
+      process.argv = ['node', 'cli.js', 'list', '--json'];
+      cli = new ProxmoxCleanupCLI();
+      await cli.run();
+
+      // Exactly one stdout payload, and it parses.
+      expect(consoleOutput).toHaveLength(1);
+      const parsed = JSON.parse(consoleOutput[0]);
+      expect(parsed.summary.count).toBe(1);
+      expect(parsed.summary.totalSize).toBe(100);
+      expect(parsed.summary.byType.image).toEqual({ count: 1, size: 100 });
+      expect(consoleOutput[0]).not.toMatch(/📋|🎉|💾/);
+    });
+
+    it('dry-run --json emits the Report verbatim', async () => {
+      const report = {
+        timestamp: new Date('2026-07-05T00:00:00Z'),
+        mode: 'dry-run',
+        summary: { resourcesScanned: 3, resourcesRemoved: 2, diskSpaceFreed: 500, executionTime: 10 },
+        details: { removed: [], skipped: [], errors: [] }
+      };
+      CleanupOrchestrator.prototype.executeDryRun = jest.fn().mockResolvedValue(report);
+
+      process.argv = ['node', 'cli.js', 'dry-run', '--json'];
+      cli = new ProxmoxCleanupCLI();
+      await cli.run();
+
+      expect(consoleOutput).toHaveLength(1);
+      const parsed = JSON.parse(consoleOutput[0]);
+      expect(parsed.mode).toBe('dry-run');
+      expect(parsed.summary.resourcesRemoved).toBe(2);
+    });
+
+    it('cleanup --json emits the Report verbatim', async () => {
+      const report = {
+        timestamp: new Date('2026-07-05T00:00:00Z'),
+        mode: 'cleanup',
+        summary: { resourcesScanned: 5, resourcesRemoved: 3, diskSpaceFreed: 1000, executionTime: 20 },
+        details: { removed: [], skipped: [], errors: [] }
+      };
+      CleanupOrchestrator.prototype.executeCleanup = jest.fn().mockResolvedValue(report);
+
+      process.argv = ['node', 'cli.js', 'cleanup', '--json'];
+      cli = new ProxmoxCleanupCLI();
+      await cli.run();
+
+      expect(consoleOutput).toHaveLength(1);
+      const parsed = JSON.parse(consoleOutput[0]);
+      expect(parsed.mode).toBe('cleanup');
+      expect(parsed.summary.resourcesRemoved).toBe(3);
+    });
+
+    it('validate-config --json emits {valid, checks} with proxmox: true when configured', async () => {
+      const mockConfig = {
+        proxmox: { host: 'test-host', token: 'test-token' },
+        cleanup: {
+          dryRun: false,
+          resourceTypes: ['container'],
+          protectedPatterns: [],
+          backupEnabled: true,
+          backupPath: './backups'
+        },
+        reporting: { verbose: false, logPath: './logs' }
+      };
+
+      mockFs.existsSync.mockReturnValue(true);
+      mockFs.readFileSync.mockReturnValue(JSON.stringify(mockConfig));
+
+      // Mock the Proxmox and Docker clients
+      const { ProxmoxClient } = jest.requireMock('../../clients/ProxmoxClient');
+      const { DockerClient } = jest.requireMock('../../clients/DockerClient');
+      ProxmoxClient.prototype.authenticate = jest.fn().mockResolvedValue(undefined);
+      DockerClient.prototype.connect = jest.fn().mockResolvedValue(undefined);
+
+      process.argv = ['node', 'cli.js', 'validate-config', '--json'];
+      cli = new ProxmoxCleanupCLI();
+      await cli.run();
+
+      expect(consoleOutput).toHaveLength(1);
+      const parsed = JSON.parse(consoleOutput[0]);
+      expect(parsed.valid).toBe(true);
+      expect(parsed.checks).toHaveProperty('structure');
+      expect(parsed.checks.proxmox).toBe(true);
+      expect(parsed.checks.docker).toBe(true);
+    });
+
+    it('validate-config --json emits checks.proxmox === null when no proxmox host is configured', async () => {
+      const mockConfig = {
+        proxmox: { host: '', token: '' },
+        cleanup: {
+          dryRun: false,
+          resourceTypes: ['container'],
+          protectedPatterns: [],
+          backupEnabled: true,
+          backupPath: './backups'
+        },
+        reporting: { verbose: false, logPath: './logs' }
+      };
+
+      mockFs.existsSync.mockReturnValue(true);
+      mockFs.readFileSync.mockReturnValue(JSON.stringify(mockConfig));
+
+      // Mock the Docker client (Proxmox should be skipped)
+      const { DockerClient } = jest.requireMock('../../clients/DockerClient');
+      DockerClient.prototype.connect = jest.fn().mockResolvedValue(undefined);
+
+      process.argv = ['node', 'cli.js', 'validate-config', '--json'];
+      cli = new ProxmoxCleanupCLI();
+      await cli.run();
+
+      expect(consoleOutput).toHaveLength(1);
+      const parsed = JSON.parse(consoleOutput[0]);
+      expect(parsed.valid).toBe(true);
+      expect(parsed.checks.structure).toBe(true);
+      expect(parsed.checks.proxmox).toBe(null);
+      expect(parsed.checks.docker).toBe(true);
+    });
+
+    it('emits {error} JSON and exits non-zero on fatal failure', async () => {
+      CleanupOrchestrator.prototype.executeDryRun = jest.fn().mockRejectedValue(new Error('Docker down'));
+
+      process.argv = ['node', 'cli.js', 'dry-run', '--json'];
+      cli = new ProxmoxCleanupCLI();
+      await cli.run();
+
+      const parsed = JSON.parse(consoleOutput[consoleOutput.length - 1]);
+      expect(parsed.error.message).toContain('Docker down');
+      expect(process.exit).toHaveBeenCalledWith(1);
     });
   });
 

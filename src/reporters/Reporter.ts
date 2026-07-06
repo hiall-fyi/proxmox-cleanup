@@ -12,9 +12,11 @@ import winston from 'winston';
 export class Reporter {
   private logger!: winston.Logger;
   private logPath: string;
+  private silentConsole: boolean;
 
-  constructor(logPath: string = './logs') {
+  constructor(logPath: string = './logs', silentConsole: boolean = false) {
     this.logPath = logPath;
+    this.silentConsole = silentConsole;
     this.setupLogger();
   }
 
@@ -39,7 +41,8 @@ export class Reporter {
       details: {
         removed: result.removed,
         skipped: result.skipped,
-        errors: result.errors
+        errors: result.errors,
+        skippedUnknownAge: result.skippedUnknownAge
       }
     };
 
@@ -95,6 +98,15 @@ export class Reporter {
         if (error.resource) {
           lines.push(`    Resource: ${error.resource.type}/${error.resource.name}`);
         }
+      });
+      lines.push('');
+    }
+
+    // Skipped unknown age
+    if (details.skippedUnknownAge && details.skippedUnknownAge.length > 0) {
+      lines.push('SKIPPED (creation time unavailable from the Docker Engine, --older-than could not apply):');
+      details.skippedUnknownAge.forEach(resource => {
+        lines.push(`  ${resource.type}: ${resource.name}`);
       });
       lines.push('');
     }
@@ -288,7 +300,8 @@ export class Reporter {
         // Console transport
         new winston.transports.Console({
           format: consoleFormat,
-          level: process.env.NODE_ENV === 'test' ? 'error' : 'info'
+          level: process.env.NODE_ENV === 'test' ? 'error' : 'info',
+          silent: this.silentConsole
         })
       ]
     });

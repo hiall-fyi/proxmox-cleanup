@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-07-06
+
+### Added
+
+- **`--json` machine-readable output** — all four commands (`cleanup`, `dry-run`, `list`, `validate-config`) can now emit JSON instead of human-readable text. Pass `--json` to get structured data on stdout with no decorative output, so scripts can parse the results. The `cleanup` and `dry-run` commands emit the full Report object; `list` emits `{resources, summary: {count, totalSize, byType}}`; `validate-config` emits `{valid, checks}`.
+- **`--older-than` creation-age filter** — only remove resources that were created before now minus a specified duration (e.g. `7d`, `12h`, `30m`). Accepted units: `s` (seconds), `m` (minutes), `h` (hours), `d` (days), `w` (weeks). The filter can also be set via `minAge` in the config file. Age is how long ago the resource was *created*, not last-used.
+
+### Changed
+
+- **Unknown creation times are now represented explicitly** — Docker volumes and other resources whose creation time the Engine doesn't report were previously filtered with no visibility. Now they're skipped by `--older-than` and surfaced in the report as a separate count (`skippedUnknownAge`), so you can see what's been left untouched and why.
+
 ## [1.3.0] - 2026-06-15
 
 No change to how cleanup, dry-run, or backups behave. A security update, two options removed that never did anything, and some tidying behind the scenes.
@@ -95,11 +106,12 @@ No change to how cleanup, dry-run, or backups behave. A security update, two opt
 - **Dependency checking** — images used by containers, volumes mounted by containers, and networks with active connections are never touched.
 - **CLI with multiple commands** — `cleanup`, `dry-run`, `list`, and `validate-config`, all with flexible options.
 - **Configuration file** — set your preferences once in `config.json`, override anything with CLI flags.
-- **Scheduled cleanup** — set a cron expression and let it run automatically.
-- **Webhook notifications** — get notified when cleanup succeeds or fails.
+- **Scheduled cleanup** — set a cron expression and let it run automatically. (Removed in v1.2.1: this was never wired into the CLI. Use a systemd timer or cron instead.)
+- **Webhook notifications** — get notified when cleanup succeeds or fails. (Removed in v1.2.1: this was never wired into the CLI.)
 - **One-line install** — `curl | bash` handles Node.js dependencies, build, global CLI setup, systemd service, config files, and log rotation.
-- **152 tests** — including property-based testing with fast-check for resource identification, safe removal, backup integrity, and report consistency.
+- **Property-based testing** — fast-check covers resource identification, safe removal, backup integrity, and report consistency, alongside unit tests for every component.
 
+[1.4.0]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.4.0
 [1.3.0]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.3.0
 [1.2.1]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.2.1
 [1.2.0]: https://github.com/hiall-fyi/proxmox-cleanup/releases/tag/v1.2.0

@@ -80,7 +80,7 @@ export class BackupManager implements IBackupManager {
       // Convert resource createdAt strings back to Dates
       backup.resources = backup.resources.map((r: Record<string, unknown>) => ({
         ...r,
-        createdAt: new Date(r.createdAt as string),
+        createdAt: r.createdAt ? new Date(r.createdAt as string) : undefined,
         lastUsed: r.lastUsed ? new Date(r.lastUsed as string) : undefined
       }));
 

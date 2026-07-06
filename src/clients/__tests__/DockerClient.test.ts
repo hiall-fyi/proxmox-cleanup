@@ -146,6 +146,38 @@ describe('DockerClient', () => {
       expect(result[0].driver).toBe('bridge');
       expect(result[0].type).toBe('network');
     });
+
+    it('leaves createdAt undefined for volumes when the Engine reports no creation time', async () => {
+      mockDocker.listVolumes.mockResolvedValue({
+        Volumes: [{ Name: 'vol1', Mountpoint: '/var/lib/docker/volumes/vol1', Labels: {} }]
+      } as any);
+
+      const result = await dockerClient.listVolumes();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].createdAt).toBeUndefined();
+    });
+
+    it('populates createdAt for networks when the Engine reports Created', async () => {
+      const created = '2020-01-01T00:00:00.000Z';
+      mockDocker.listNetworks.mockResolvedValue([
+        { Id: 'net1', Name: 'mynet', Created: created, Driver: 'bridge', Labels: {}, Containers: {} }
+      ] as any);
+
+      const result = await dockerClient.listNetworks();
+
+      expect(result[0].createdAt).toEqual(new Date(created));
+    });
+
+    it('leaves createdAt undefined for networks when Created is absent', async () => {
+      mockDocker.listNetworks.mockResolvedValue([
+        { Id: 'net2', Name: 'mynet2', Driver: 'bridge', Labels: {}, Containers: {} }
+      ] as any);
+
+      const result = await dockerClient.listNetworks();
+
+      expect(result[0].createdAt).toBeUndefined();
+    });
   });
 
   describe('Remove Operations', () => {

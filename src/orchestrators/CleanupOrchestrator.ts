@@ -13,6 +13,7 @@ import {
   ICleanupOrchestrator
 } from '../interfaces';
 import { SizeCalculator } from '../utils/SizeCalculator';
+import { AgeFilter } from '../utils/AgeFilter';
 import { errorMessage } from '../utils/errors';
 
 /**
@@ -40,6 +41,14 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
   }
 
   /**
+   * Parse the configured minimum age to ms, or undefined if unset. Throws on bad input.
+   */
+  private minAgeMs(): number | undefined {
+    const { minAge } = this.config.cleanup;
+    return minAge ? AgeFilter.parseDuration(minAge) : undefined;
+  }
+
+  /**
    * Execute the complete cleanup workflow
    */
   async executeCleanup(): Promise<Report> {
@@ -47,20 +56,35 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
     const mode = this.config.cleanup.dryRun ? 'dry-run' : 'cleanup';
 
     try {
+      const thresholdMs = this.minAgeMs(); // throws on invalid duration, before any Docker call
       await this.connectToDocker();
 
       const allResources = await this.scanAll();
 
       this.reporter.logOperationStart(mode, allResources.length);
 
-      const filteredResources = this.filterResources(allResources);
-      const sortedResources = SizeCalculator.sortResourcesBySize(filteredResources);
+      const typeFiltered = this.filterResources(allResources);
+      let candidates = typeFiltered;
+      let unknownAge: Resource[] = [];
+      if (thresholdMs !== undefined) {
+        const { kept, skippedUnknownAge } = AgeFilter.filterOlderThan(typeFiltered, thresholdMs, Date.now());
+        candidates = kept;
+        unknownAge = skippedUnknownAge;
+      }
+      const sortedResources = SizeCalculator.sortResourcesBySize(candidates);
 
       if (this.config.cleanup.backupEnabled && !this.config.cleanup.dryRun) {
         await this.createBackup(sortedResources);
       }
 
       const cleanupResult = await this.performCleanup(sortedResources);
+
+      if (unknownAge.length > 0) {
+        cleanupResult.skippedUnknownAge = unknownAge;
+        unknownAge.forEach(r =>
+          this.reporter.logResourceSkip(r, 'creation time unavailable from the Docker Engine — cannot apply --older-than')
+        );
+      }
 
       // diskSpaceFreed is the sum of the sizes reported by the Docker API
       // for the resources we actually removed. Networks and volumes often
@@ -169,10 +193,14 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
    * never drift from what cleanup would actually act on.
    */
   async listUnused(): Promise<Resource[]> {
+    const thresholdMs = this.minAgeMs();
     await this.connectToDocker();
     const allResources = await this.scanAll();
     const filtered = this.filterResources(allResources);
-    return SizeCalculator.sortResourcesBySize(filtered);
+    const candidates = thresholdMs === undefined
+      ? filtered
+      : AgeFilter.filterOlderThan(filtered, thresholdMs, Date.now()).kept;
+    return SizeCalculator.sortResourcesBySize(candidates);
   }
 
   /**

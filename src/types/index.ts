@@ -10,7 +10,7 @@ export interface Resource {
   name: string;
   type: ResourceType;
   size: number;
-  createdAt: Date;
+  createdAt?: Date;
   lastUsed?: Date;
   tags: string[];
 }
@@ -53,6 +53,7 @@ export interface CleanupOptions {
   protectedPatterns: string[];
   backupEnabled: boolean;
   backupPath: string;
+  minAge?: string;
 }
 
 export interface ReportingOptions {
@@ -88,6 +89,7 @@ export interface CleanupResult {
   removed: Resource[];
   skipped: Resource[];
   errors: CleanupError[];
+  skippedUnknownAge?: Resource[];
   diskSpaceFreed: number;
   executionTime: number;
 }
@@ -123,6 +125,7 @@ export interface Report {
     removed: Resource[];
     skipped: Resource[];
     errors: CleanupError[];
+    skippedUnknownAge?: Resource[];
   };
 }
 

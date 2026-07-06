@@ -27,6 +27,8 @@ interface CliOptions {
   logPath?: string;
   proxmoxHost?: string;
   proxmoxToken?: string;
+  json?: boolean;
+  olderThan?: string;
 }
 
 /**
@@ -83,11 +85,17 @@ class ProxmoxCleanupCLI {
       .option('--log-path <path>', 'Custom log directory path', './logs')
       .option('--proxmox-host <host>', 'Proxmox host address')
       .option('--proxmox-token <token>', 'Proxmox API token (format: user@realm:password)')
+      .option('--older-than <duration>', 'Only act on resources created before now minus this duration (e.g. 7d, 12h)')
+      .option('--json', 'Output machine-readable JSON only (suppresses human output)')
       .action(async (options) => {
         try {
           await this.executeCleanup(options);
         } catch (error) {
-          console.error('❌ Cleanup failed:', errorMessage(error));
+          if (options.json) {
+            this.emitJson({ error: { message: errorMessage(error) } });
+          } else {
+            console.error('❌ Cleanup failed:', errorMessage(error));
+          }
           process.exit(1);
         }
       });
@@ -103,11 +111,17 @@ class ProxmoxCleanupCLI {
       .option('--log-path <path>', 'Custom log directory path', './logs')
       .option('--proxmox-host <host>', 'Proxmox host address')
       .option('--proxmox-token <token>', 'Proxmox API token (format: user@realm:password)')
+      .option('--older-than <duration>', 'Only act on resources created before now minus this duration (e.g. 7d, 12h)')
+      .option('--json', 'Output machine-readable JSON only (suppresses human output)')
       .action(async (options) => {
         try {
           await this.executeDryRun(options);
         } catch (error) {
-          console.error('❌ Dry-run failed:', errorMessage(error));
+          if (options.json) {
+            this.emitJson({ error: { message: errorMessage(error) } });
+          } else {
+            console.error('❌ Dry-run failed:', errorMessage(error));
+          }
           process.exit(1);
         }
       });
@@ -119,11 +133,17 @@ class ProxmoxCleanupCLI {
       .option('-t, --types <types>', 'Comma-separated list of resource types to list (containers,images,volumes,networks)', 'all')
       .option('-p, --protect <patterns>', 'Comma-separated list of protection patterns (wildcards supported)', '')
       .option('-c, --config <path>', 'Path to configuration file')
+      .option('--older-than <duration>', 'Only act on resources created before now minus this duration (e.g. 7d, 12h)')
+      .option('--json', 'Output machine-readable JSON only (suppresses human output)')
       .action(async (options) => {
         try {
           await this.listResources(options);
         } catch (error) {
-          console.error('❌ List failed:', errorMessage(error));
+          if (options.json) {
+            this.emitJson({ error: { message: errorMessage(error) } });
+          } else {
+            console.error('❌ List failed:', errorMessage(error));
+          }
           process.exit(1);
         }
       });
@@ -133,28 +153,46 @@ class ProxmoxCleanupCLI {
       .command('validate-config')
       .description('Validate configuration file')
       .option('-c, --config <path>', 'Path to configuration file', './config.json')
+      .option('--json', 'Output machine-readable JSON only (suppresses human output)')
       .action(async (options) => {
         try {
           await this.validateConfig(options);
         } catch (error) {
-          console.error('❌ Config validation failed:', errorMessage(error));
+          if (options.json) {
+            this.emitJson({ error: { message: errorMessage(error) } });
+          } else {
+            console.error('❌ Config validation failed:', errorMessage(error));
+          }
           process.exit(1);
         }
       });
   }
 
   /**
+   * Emit JSON to stdout
+   */
+  private emitJson(payload: unknown): void {
+    console.log(JSON.stringify(payload, null, 2));
+  }
+
+  /**
    * Execute cleanup operation
    */
   private async executeCleanup(options: CliOptions): Promise<void> {
-    console.log('🚀 Starting Proxmox Docker cleanup...\n');
+    if (!options.json) {
+      console.log('🚀 Starting Proxmox Docker cleanup...\n');
+    }
 
     const config = await this.loadConfig(options);
-    const orchestrator = await this.createOrchestrator(config);
+    const orchestrator = await this.createOrchestrator(config, options);
 
     const report = await orchestrator.executeCleanup();
 
-    this.displayReport(report, false);
+    if (options.json) {
+      this.emitJson(report);
+    } else {
+      this.displayReport(report, false);
+    }
 
     if (report.details.errors.length > 0) {
       process.exit(1);
@@ -165,28 +203,54 @@ class ProxmoxCleanupCLI {
    * Execute dry-run operation
    */
   private async executeDryRun(options: CliOptions): Promise<void> {
-    console.log('🔍 Starting dry-run preview...\n');
+    if (!options.json) {
+      console.log('🔍 Starting dry-run preview...\n');
+    }
 
     const config = await this.loadConfig(options);
-    const orchestrator = await this.createOrchestrator(config);
+    const orchestrator = await this.createOrchestrator(config, options);
 
     const report = await orchestrator.executeDryRun();
 
-    this.displayReport(report, true);
+    if (options.json) {
+      this.emitJson(report);
+    } else {
+      this.displayReport(report, true);
+    }
   }
 
   /**
    * List unused resources
    */
   private async listResources(options: CliOptions): Promise<void> {
-    console.log('📋 Listing unused Docker resources...\n');
+    if (!options.json) {
+      console.log('📋 Listing unused Docker resources...\n');
+    }
 
     const config = await this.loadConfig(options);
-    const orchestrator = await this.createOrchestrator(config);
+    const orchestrator = await this.createOrchestrator(config, options);
 
     // Shares the scan → type-filter → sort pipeline with cleanup, so the
     // listing can never diverge from what a cleanup would actually act on.
     const resources = await orchestrator.listUnused();
+
+    if (options.json) {
+      const byType = resources.reduce<Record<string, { count: number; size: number }>>((acc, r) => {
+        acc[r.type] = acc[r.type] || { count: 0, size: 0 };
+        acc[r.type].count += 1;
+        acc[r.type].size += r.size;
+        return acc;
+      }, {});
+      this.emitJson({
+        resources,
+        summary: {
+          count: resources.length,
+          totalSize: resources.reduce((s, r) => s + r.size, 0),
+          byType
+        }
+      });
+      return;
+    }
 
     this.displayResourceList(resources);
   }
@@ -195,30 +259,53 @@ class ProxmoxCleanupCLI {
    * Validate configuration file
    */
   private async validateConfig(options: CliOptions): Promise<void> {
-    console.log('✅ Validating configuration...\n');
+    const checks: Record<string, boolean | null> = {
+      structure: false,
+      proxmox: null,
+      docker: false
+    };
+
+    if (!options.json) {
+      console.log('✅ Validating configuration...\n');
+    }
 
     try {
       const config = await this.loadConfig(options);
 
       // Basic validation
       this.validateConfigStructure(config);
+      checks.structure = true;
 
       // Test Proxmox connection if configured
       if (config.proxmox.host && config.proxmox.token) {
-        console.log('🔗 Testing Proxmox connection...');
+        if (!options.json) {
+          console.log('🔗 Testing Proxmox connection...');
+        }
         const proxmoxClient = new ProxmoxClient(config.proxmox);
 
         await proxmoxClient.authenticate();
-        console.log('✅ Proxmox connection successful');
+        checks.proxmox = true;
+        if (!options.json) {
+          console.log('✅ Proxmox connection successful');
+        }
       }
 
       // Test Docker connection
-      console.log('🐳 Testing Docker connection...');
+      if (!options.json) {
+        console.log('🐳 Testing Docker connection...');
+      }
       const dockerClient = new DockerClient();
       await dockerClient.connect();
-      console.log('✅ Docker connection successful');
+      checks.docker = true;
+      if (!options.json) {
+        console.log('✅ Docker connection successful');
+      }
 
-      console.log('\n🎉 Configuration is valid!');
+      if (options.json) {
+        this.emitJson({ valid: true, checks });
+      } else {
+        console.log('\n🎉 Configuration is valid!');
+      }
 
     } catch (error) {
       throw new Error(`Configuration validation failed: ${errorMessage(error)}`);
@@ -311,6 +398,11 @@ class ProxmoxCleanupCLI {
     if (options.proxmoxToken) {
       config.proxmox.token = options.proxmoxToken;
     }
+
+    // Age filtering
+    if (options.olderThan) {
+      config.cleanup.minAge = options.olderThan;
+    }
   }
 
   /**
@@ -346,7 +438,7 @@ class ProxmoxCleanupCLI {
   /**
    * Create orchestrator with all dependencies
    */
-  private async createOrchestrator(config: CleanupConfig): Promise<CleanupOrchestrator> {
+  private async createOrchestrator(config: CleanupConfig, options: CliOptions): Promise<CleanupOrchestrator> {
     // Create Docker client
     const dockerClient = new DockerClient();
     await dockerClient.connect();
@@ -359,7 +451,7 @@ class ProxmoxCleanupCLI {
     const backupManager = new BackupManager(config.cleanup.backupPath);
 
     // Create reporter
-    const reporter = new Reporter(config.reporting.logPath);
+    const reporter = new Reporter(config.reporting.logPath, options.json === true);
 
     return new CleanupOrchestrator(
       dockerClient,
@@ -387,6 +479,10 @@ class ProxmoxCleanupCLI {
 
     if (report.details.skipped.length > 0) {
       console.log(`⏭️ Resources Skipped: ${report.details.skipped.length}`);
+    }
+
+    if (report.details.skippedUnknownAge && report.details.skippedUnknownAge.length > 0) {
+      console.log(`🕓 Skipped (no creation time from Docker, --older-than not applied): ${report.details.skippedUnknownAge.length}`);
     }
 
     if (report.details.errors.length > 0) {

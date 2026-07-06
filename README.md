@@ -6,7 +6,7 @@
 ![Proxmox](https://img.shields.io/badge/Proxmox-VE%208.x-E57000?style=for-the-badge&logo=proxmox&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue?style=for-the-badge&logo=typescript&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-24.x-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 <!-- Status Badges -->
-![Version](https://img.shields.io/badge/Version-1.3.0-purple?style=for-the-badge) ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge) ![Maintained](https://img.shields.io/badge/Maintained-Yes-green.svg?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.4.0-purple?style=for-the-badge) ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge) ![Maintained](https://img.shields.io/badge/Maintained-Yes-green.svg?style=for-the-badge)
 
 <!-- Community Badges -->
 ![GitHub stars](https://img.shields.io/github/stars/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github) ![GitHub forks](https://img.shields.io/github/forks/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github) ![GitHub issues](https://img.shields.io/github/issues/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github) ![GitHub last commit](https://img.shields.io/github/last-commit/hiall-fyi/proxmox-cleanup?style=for-the-badge&logo=github)
@@ -134,7 +134,8 @@ Create a `config.json` file (see `config.example.json`):
     "resourceTypes": [],
     "protectedPatterns": ["important-*", "system-*"],
     "backupEnabled": true,
-    "backupPath": "./backups"
+    "backupPath": "./backups",
+    "minAge": "7d"
   },
   "reporting": {
     "verbose": true,
@@ -144,6 +145,10 @@ Create a `config.json` file (see `config.example.json`):
 ```
 
 All configuration options can be overridden via CLI flags.
+
+**Age filtering:** The optional `minAge` setting (or `--older-than` CLI flag) accepts a duration like `7d` (7 days), `12h` (12 hours), `30m` (30 minutes). Only resources older than this are removed — age is how long ago the resource was *created*, not last-used. Accepted units: `s` (seconds), `m` (minutes), `h` (hours), `d` (days), `w` (weeks).
+
+**Volumes and creation time:** Docker volumes often report no creation time. When a resource's creation time is unavailable, `--older-than` skips it entirely and the report shows a separate count of these skipped resources. This keeps the tool safe by default — if the Engine can't tell you when a volume was created, the age filter won't guess.
 
 ### Scheduling
 
@@ -204,6 +209,8 @@ Options:
   -v, --verbose                    Enable verbose logging
   --proxmox-host <host>            Proxmox host address
   --proxmox-token <token>          Proxmox API token
+  --older-than <duration>          Only remove resources older than this (e.g. 7d, 12h)
+  --json                           Output JSON only (suppresses human-readable output)
 ```
 
 ### `dry-run`
@@ -212,6 +219,17 @@ Preview what would be removed without making changes.
 
 ```bash
 proxmox-cleanup dry-run [options]
+
+Options:
+  -t, --types <types>              Resource types to scan (containers,images,volumes,networks)
+  -p, --protect <patterns>         Protection patterns (wildcards supported)
+  -c, --config <path>              Path to configuration file
+  -v, --verbose                    Enable verbose logging
+  --log-path <path>                Custom log directory path
+  --proxmox-host <host>            Proxmox host address
+  --proxmox-token <token>          Proxmox API token
+  --older-than <duration>          Only remove resources older than this (e.g. 7d, 12h)
+  --json                           Output JSON only (suppresses human-readable output)
 ```
 
 ### `list`
@@ -225,6 +243,8 @@ Options:
   -t, --types <types>              Resource types to list (containers,images,volumes,networks)
   -p, --protect <patterns>         Protection patterns (wildcards supported)
   -c, --config <path>              Path to configuration file
+  --older-than <duration>          Only list resources older than this (e.g. 7d, 12h)
+  --json                           Output JSON only (suppresses human-readable output)
 ```
 
 ### `validate-config`
@@ -233,6 +253,10 @@ Validate configuration file and test connections.
 
 ```bash
 proxmox-cleanup validate-config -c /etc/proxmox-cleanup/config.json
+
+Options:
+  -c, --config <path>              Path to configuration file
+  --json                           Output JSON only (suppresses human-readable output)
 ```
 
 ---
@@ -254,6 +278,12 @@ proxmox-cleanup cleanup --types volumes --no-backup
 
 # List all unused resources (sorted largest-first)
 proxmox-cleanup list
+
+# Only clean resources created more than 7 days ago
+proxmox-cleanup cleanup --older-than 7d
+
+# Machine-readable JSON output for scripting
+proxmox-cleanup list --json > unused-resources.json
 
 # Verbose mode for troubleshooting
 proxmox-cleanup cleanup --verbose -c /etc/proxmox-cleanup/config.json
