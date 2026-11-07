@@ -42,7 +42,7 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
-    "@types/dockerode": "^4.0.1",
+    "@types/dockerode": "^4.0.2",
     "@types/jest": "^30.0.0",
     "@types/node": "^20.19.27",
     "@typescript-eslint/eslint-plugin": "^8.69.0",
