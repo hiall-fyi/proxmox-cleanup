@@ -59,11 +59,13 @@ export class CleanupOrchestrator implements ICleanupOrchestrator {
       await this.connectToDocker();
 
       const allResources = await this.scanAll();
+      this.reporter.logDebug(`Found ${allResources.length} unused resource(s) after protection`);
 
       this.reporter.logOperationStart(mode, allResources.length);
 
       const { resources: sortedResources, skippedUnknownAge: unknownAge } =
         this.selectCandidates(allResources, thresholdMs);
+      this.reporter.logDebug(`Selected ${sortedResources.length} candidate(s) after type and age filters`);
 
       if (this.config.cleanup.backupEnabled && !this.config.cleanup.dryRun) {
         await this.createBackup(sortedResources);

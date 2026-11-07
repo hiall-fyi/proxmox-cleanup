@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-11-07
+
+`validate-config` now warns when it isn't checking Proxmox's TLS certificate, `--verbose` finally does something, and the dependencies are updated to clear their security advisories. Nothing needs re-configuring.
+
+### Security
+
+- **`axios` updated to 1.20.0**, which fixes two prototype-pollution issues in how requests are built. `follow-redirects` and `@grpc/grpc-js` are updated too, so `npm audit --omit=dev` reports 0 vulnerabilities again.
+
+### Bug Fixes
+
+- **`-v/--verbose` now works.** It and `reporting.verbose` used to do nothing. They now turn on debug logging, including a line for each resource your protection patterns kept out.
+
+### Improvements
+
+- **`validate-config` warns when TLS certificate verification is off.** The default is unchanged and Proxmox's self-signed certificate is still accepted. If you've installed a CA-signed one, set `"verifyTls": true` under `proxmox`. `--json` output is unchanged.
+- **README rewritten**, with step-by-step setup, a Known limitations section, and a few corrections to what the old one said.
+
+### Under the hood
+
+- `package.json` now declares Node.js 18 or later (`engines`), which the installer already required. CI runs on Node 18 and 22.
+- Dev tooling updated: TypeScript 6, fast-check 4, and patched `minimatch` and `glob`. Six low-severity advisories remain in Jest's `deepmerge` with no upstream fix; none of it ships in the package.
+- `dockerode` updated to 5.0.1.
+- Dependabot skips `commander` 14 and later, `eslint` 10 and later, and `@types/node` major versions, which all need a newer Node.js than the 18 this package supports.
+
 ## [3.0.0] - 2026-09-06
 
 A protection-pattern bug is fixed: `-p` used to replace your config file's

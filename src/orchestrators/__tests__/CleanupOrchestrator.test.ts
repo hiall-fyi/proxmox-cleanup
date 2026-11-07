@@ -159,6 +159,7 @@ class MockReporter implements IReporter {
   }
   logResourceSkip(): void {}
   logBackupOperation(): void {}
+  logDebug(): void {}
   getLogger(): any {
     return {
       warn: jest.fn(),

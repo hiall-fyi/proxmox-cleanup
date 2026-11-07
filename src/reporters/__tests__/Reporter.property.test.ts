@@ -16,7 +16,7 @@ const resourceArbitrary = fc.record({
     fc.constant('network' as const)
   ),
   size: fc.nat({ max: 1000000000 }),
-  createdAt: fc.date(),
+  createdAt: fc.date({ noInvalidDate: true }),
   tags: fc.array(fc.string())
 });
 
@@ -31,7 +31,7 @@ const cleanupErrorArbitrary = fc.record({
     fc.constant('unknown' as const)
   ),
   message: fc.string({ minLength: 1 }),
-  timestamp: fc.date(),
+  timestamp: fc.date({ noInvalidDate: true }),
   recoverable: fc.boolean(),
   resource: fc.option(resourceArbitrary, { nil: undefined })
 });

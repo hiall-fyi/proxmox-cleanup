@@ -415,6 +415,46 @@ describe('ProxmoxCleanupCLI', () => {
       }, {})).resolves.toBeDefined();
     });
 
+    describe('verbose wiring', () => {
+      const { Reporter } = jest.requireMock('../../reporters/Reporter');
+      const { ResourceScanner } = jest.requireMock('../../scanners/ResourceScanner');
+      const configWith = (verbose: boolean) => ({
+        proxmox: { host: '', token: '' },
+        cleanup: {
+          dryRun: true, resourceTypes: [], protectedPatterns: ['keep-*'],
+          backupEnabled: false, backupPath: './b'
+        },
+        reporting: { verbose, logPath: './l', keepReports: 5 }
+      });
+
+      beforeEach(() => {
+        Reporter.mockClear();
+        ResourceScanner.mockClear();
+      });
+
+      it('passes verbose to the Reporter and registers the protected observer', async () => {
+        await (cli as any).createOrchestrator(configWith(true), {});
+
+        expect(Reporter.mock.calls[0][3]).toBe(true);
+        const scanner = ResourceScanner.mock.instances[0];
+        expect(scanner.setProtectedObserver).toHaveBeenCalledTimes(1);
+
+        const reporter = Reporter.mock.instances[0];
+        scanner.setProtectedObserver.mock.calls[0][0]({ id: 'i1', name: 'keep-img', type: 'image' });
+        expect(reporter.logDebug).toHaveBeenCalledWith(
+          'Protected image: keep-img',
+          { resourceType: 'image', resourceName: 'keep-img', resourceId: 'i1' }
+        );
+      });
+
+      it('leaves the observer unregistered when verbose is off', async () => {
+        await (cli as any).createOrchestrator(configWith(false), {});
+
+        expect(Reporter.mock.calls[0][3]).toBe(false);
+        expect(ResourceScanner.mock.instances[0].setProtectedObserver).not.toHaveBeenCalled();
+      });
+    });
+
     it('does not double-prefix the validate-config failure message', async () => {
       // The command handler already prints "Config validation failed:", so
       // wrapping the message again read as "Config validation failed:
@@ -711,6 +751,48 @@ describe('ProxmoxCleanupCLI', () => {
       expect(parsed.checks).toHaveProperty('structure');
       expect(parsed.checks.proxmox).toBe(true);
       expect(parsed.checks.docker).toBe(true);
+    });
+
+    describe('validate-config TLS verification warning', () => {
+      const runValidate = async (verifyTls: boolean | undefined): Promise<string[]> => {
+        const mockConfig = {
+          proxmox: { host: 'test-host', token: 'test-token', ...(verifyTls === undefined ? {} : { verifyTls }) },
+          cleanup: {
+            dryRun: false,
+            resourceTypes: ['container'],
+            protectedPatterns: [],
+            backupEnabled: true,
+            backupPath: './backups'
+          },
+          reporting: { verbose: false, logPath: './logs' }
+        };
+        mockFs.existsSync.mockReturnValue(true);
+        mockFs.readFileSync.mockReturnValue(JSON.stringify(mockConfig));
+        const { ProxmoxClient } = jest.requireMock('../../clients/ProxmoxClient');
+        const { DockerClient } = jest.requireMock('../../clients/DockerClient');
+        ProxmoxClient.prototype.authenticate = jest.fn().mockResolvedValue(undefined);
+        DockerClient.prototype.connect = jest.fn().mockResolvedValue(undefined);
+
+        process.argv = ['node', 'cli.js', 'validate-config'];
+        cli = new ProxmoxCleanupCLI();
+        await cli.run();
+        return consoleOutput;
+      };
+
+      it('warns that the certificate is not verified when verifyTls is false', async () => {
+        const out = await runValidate(false);
+        expect(out.some(line => line.includes('TLS certificate verification is off'))).toBe(true);
+      });
+
+      it('warns when verifyTls is not set, since the default is unverified', async () => {
+        const out = await runValidate(undefined);
+        expect(out.some(line => line.includes('TLS certificate verification is off'))).toBe(true);
+      });
+
+      it('does not warn when verifyTls is true', async () => {
+        const out = await runValidate(true);
+        expect(out.some(line => line.includes('TLS certificate verification'))).toBe(false);
+      });
     });
 
     it('validate-config --json emits checks.proxmox === null when no proxmox host is configured', async () => {

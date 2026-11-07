@@ -56,6 +56,11 @@ export interface IReporter {
   logBackupOperation(resourceCount: number, backupPath: string, success: boolean, error?: string): void;
 
   /**
+   * Log a debug line, written only when verbose is on
+   */
+  logDebug(message: string, meta?: Record<string, unknown>): void;
+
+  /**
    * Get logger instance for external use
    */
   getLogger(): winston.Logger;

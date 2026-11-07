@@ -4,8 +4,25 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      # commander 14+ needs Node 20 or later (15+ is also ESM-only); this package supports Node 18
+      - dependency-name: "commander"
+        versions: [">=14"]
+      # eslint 10 needs Node 20.19 or later
+      - dependency-name: "eslint"
+        versions: [">=10"]
+      # @types/node should track the oldest supported Node, not the newest
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # typescript-eslint 8.x supports TypeScript below 6.1 and ts-jest 29.x below 7
+      - dependency-name: "typescript"
+        versions: [">=6.1"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]

@@ -18,15 +18,18 @@ export class Reporter {
   private logPath: string;
   private silentConsole: boolean;
   private keepReports: number;
+  private verbose: boolean;
 
   constructor(
     logPath: string = './logs',
     silentConsole: boolean = false,
-    keepReports: number = DEFAULT_KEEP_REPORTS
+    keepReports: number = DEFAULT_KEEP_REPORTS,
+    verbose: boolean = false
   ) {
     this.logPath = logPath;
     this.silentConsole = silentConsole;
     this.keepReports = keepReports;
+    this.verbose = verbose;
     this.setupLogger();
   }
 
@@ -254,7 +257,7 @@ export class Reporter {
     );
 
     this.logger = winston.createLogger({
-      level: 'info',
+      level: this.verbose ? 'debug' : 'info',
       format: logFormat,
       transports: [
         new winston.transports.File({
@@ -272,11 +275,15 @@ export class Reporter {
         }),
         new winston.transports.Console({
           format: consoleFormat,
-          level: process.env.NODE_ENV === 'test' ? 'error' : 'info',
+          level: process.env.NODE_ENV === 'test' ? 'error' : (this.verbose ? 'debug' : 'info'),
           silent: this.silentConsole
         })
       ]
     });
+  }
+
+  logDebug(message: string, meta?: Record<string, unknown>): void {
+    this.logger.debug(message, meta);
   }
 
   private logReport(report: Report): void {
