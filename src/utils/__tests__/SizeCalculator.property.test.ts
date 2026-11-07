@@ -8,7 +8,7 @@ const containerArbitrary = fc.record({
   name: fc.string({ minLength: 1 }),
   type: fc.constant('container' as const),
   size: fc.nat({ max: 1000000000 }), // Up to 1GB
-  createdAt: fc.date(),
+  createdAt: fc.date({ noInvalidDate: true }),
   tags: fc.array(fc.string()),
   status: fc.oneof(
     fc.constant('running' as const),
@@ -24,7 +24,7 @@ const imageArbitrary = fc.record({
   name: fc.string({ minLength: 1 }),
   type: fc.constant('image' as const),
   size: fc.nat({ max: 5000000000 }),
-  createdAt: fc.date(),
+  createdAt: fc.date({ noInvalidDate: true }),
   tags: fc.array(fc.string()),
   repository: fc.string({ minLength: 1 }),
   tag: fc.string({ minLength: 1 }),
@@ -36,7 +36,7 @@ const volumeArbitrary = fc.record({
   name: fc.string({ minLength: 1 }),
   type: fc.constant('volume' as const),
   size: fc.nat({ max: 2000000000 }),
-  createdAt: fc.date(),
+  createdAt: fc.date({ noInvalidDate: true }),
   tags: fc.array(fc.string()),
   mountPoint: fc.string({ minLength: 1 }),
   usedByContainers: fc.array(fc.string())
@@ -47,7 +47,7 @@ const networkArbitrary = fc.record({
   name: fc.string({ minLength: 1 }),
   type: fc.constant('network' as const),
   size: fc.constant(0),
-  createdAt: fc.date(),
+  createdAt: fc.date({ noInvalidDate: true }),
   tags: fc.array(fc.string()),
   driver: fc.string({ minLength: 1 }),
   connectedContainers: fc.array(fc.string())

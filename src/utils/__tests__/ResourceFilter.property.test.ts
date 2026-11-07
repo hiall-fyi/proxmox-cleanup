@@ -13,11 +13,11 @@ describe('ResourceFilter Property Tests', () => {
           // Generate resources
           fc.array(
             fc.record({
-              id: fc.hexaString({ minLength: 12, maxLength: 64 }),
+              id: fc.stringMatching(/^[0-9a-f]{12,64}$/),
               name: fc.string({ minLength: 1, maxLength: 20 }),
               type: fc.constantFrom('container', 'image', 'volume', 'network'),
               size: fc.nat(),
-              createdAt: fc.date(),
+              createdAt: fc.date({ noInvalidDate: true }),
               tags: fc.array(fc.string({ minLength: 1, maxLength: 10 }), { maxLength: 5 })
             }),
             { minLength: 5, maxLength: 20 }
@@ -146,7 +146,7 @@ describe('ResourceFilter Property Tests', () => {
   it('should correctly match ID-based protection', async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.hexaString({ minLength: 12, maxLength: 64 }),
+        fc.stringMatching(/^[0-9a-f]{12,64}$/),
         async (protectedId) => {
           const pattern = `id:${protectedId}`;
           const filter = new ResourceFilter([pattern]);

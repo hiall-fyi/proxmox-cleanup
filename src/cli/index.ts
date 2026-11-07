@@ -260,6 +260,9 @@ class ProxmoxCleanupCLI {
         if (!options.json) {
           console.log('🔗 Testing Proxmox connection...');
         }
+        if (!options.json && config.proxmox.verifyTls !== true) {
+          console.log('⚠️  TLS certificate verification is off; set "verifyTls": true under "proxmox" if you use a CA-signed certificate.');
+        }
         const proxmoxClient = new ProxmoxClient(config.proxmox);
 
         await proxmoxClient.authenticate();
@@ -450,8 +453,16 @@ class ProxmoxCleanupCLI {
     const reporter = new Reporter(
       config.reporting.logPath,
       options.json === true,
-      config.reporting.keepReports
+      config.reporting.keepReports,
+      config.reporting.verbose
     );
+
+    if (config.reporting.verbose) {
+      resourceScanner.setProtectedObserver(r => reporter.logDebug(
+        `Protected ${r.type}: ${r.name}`,
+        { resourceType: r.type, resourceName: r.name, resourceId: r.id }
+      ));
+    }
 
     return new CleanupOrchestrator(
       dockerClient,

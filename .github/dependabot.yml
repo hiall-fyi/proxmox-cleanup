@@ -4,8 +4,19 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      # commander 15+ is ESM-only and needs Node 22.12+; this package is CommonJS on Node 18+
+      - dependency-name: "commander"
+        versions: [">=15"]
+      # typescript-eslint 8.x supports TypeScript below 6.1 and ts-jest 29.x below 7
+      - dependency-name: "typescript"
+        versions: [">=6.1"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]

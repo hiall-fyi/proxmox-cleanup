@@ -21,12 +21,12 @@ const ENGINE_CONTAINER_STATES: ContainerStatus[] = [
 const REMOVABLE: ContainerStatus[] = ['exited', 'created', 'dead'];
 
 const containerArbitrary = fc.record({
-  id: fc.hexaString({ minLength: 12, maxLength: 64 }),
+  id: fc.stringMatching(/^[0-9a-f]{12,64}$/),
   name: fc.string({ minLength: 1, maxLength: 20 }),
   status: fc.constantFrom(...ENGINE_CONTAINER_STATES),
-  imageId: fc.hexaString({ minLength: 12, maxLength: 64 }),
+  imageId: fc.stringMatching(/^[0-9a-f]{12,64}$/),
   size: fc.nat(),
-  createdAt: fc.date(),
+  createdAt: fc.date({ noInvalidDate: true }),
   tags: fc.array(fc.string(), { maxLength: 5 }),
   volumes: fc.array(fc.string(), { maxLength: 3 }),
   networks: fc.array(fc.string(), { maxLength: 3 })
@@ -116,11 +116,11 @@ it('should not mark resources as unused if they are in use by any container', as
         // Generate images
         fc.array(
           fc.record({
-            id: fc.hexaString({ minLength: 12, maxLength: 64 }),
+            id: fc.stringMatching(/^[0-9a-f]{12,64}$/),
             repository: fc.string({ minLength: 1, maxLength: 20 }),
             tag: fc.string({ minLength: 1, maxLength: 10 }),
             size: fc.nat(),
-            createdAt: fc.date(),
+            createdAt: fc.date({ noInvalidDate: true }),
             tags: fc.array(fc.string(), { maxLength: 5 })
           }),
           { minLength: 1, maxLength: 10 }
