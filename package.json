@@ -1,6 +1,6 @@
 {
   "name": "proxmox-cleanup",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Automated cleanup tool for unused Docker resources on Proxmox infrastructure",
   "main": "dist/index.js",
   "bin": {
@@ -14,6 +14,9 @@
     "LICENSE",
     "README.md"
   ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc",
     "test": "jest",
@@ -30,24 +33,28 @@
     "cleanup",
     "devops"
   ],
-  "author": "Joe Yiu",
+  "author": "Joe Yiu (https://github.com/hiall-fyi)",
   "license": "MIT",
   "dependencies": {
-    "axios": "^1.20.0",
+    "axios": "^1.21.0",
     "commander": "^11.1.0",
-    "dockerode": "^5.0.0",
+    "dockerode": "^5.0.1",
     "winston": "^3.19.0"
   },
   "devDependencies": {
-    "@types/dockerode": "^4.0.1",
+    "@types/dockerode": "^4.0.2",
     "@types/jest": "^30.0.0",
-    "@types/node": "^20.19.27",
+    "@types/node": "^20.19.43",
     "@typescript-eslint/eslint-plugin": "^8.69.0",
     "@typescript-eslint/parser": "^8.59.3",
     "eslint": "^9.39.4",
-    "fast-check": "^3.15.0",
+    "fast-check": "^4.10.2",
     "jest": "^30.5.1",
     "ts-jest": "^29.4.12",
-    "typescript": "^5.3.3"
+    "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "minimatch": "^11.0.5",
+    "glob": "^14.0.4"
   }
 }

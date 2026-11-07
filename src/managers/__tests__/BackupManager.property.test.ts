@@ -33,11 +33,11 @@ describe('BackupManager Property Tests', () => {
       fc.asyncProperty(
         fc.array(
           fc.record({
-            id: fc.hexaString({ minLength: 12, maxLength: 64 }),
+            id: fc.stringMatching(/^[0-9a-f]{12,64}$/),
             name: fc.string({ minLength: 1, maxLength: 20 }),
             type: fc.constantFrom('container', 'image', 'volume', 'network'),
             size: fc.nat(),
-            createdAt: fc.date(),
+            createdAt: fc.date({ noInvalidDate: true }),
             tags: fc.array(fc.string({ minLength: 1, maxLength: 10 }), { maxLength: 5 })
           }),
           { minLength: 1, maxLength: 20 }
@@ -80,11 +80,11 @@ describe('BackupManager Property Tests', () => {
       fc.asyncProperty(
         fc.array(
           fc.record({
-            id: fc.hexaString({ minLength: 12, maxLength: 64 }),
+            id: fc.stringMatching(/^[0-9a-f]{12,64}$/),
             name: fc.string({ minLength: 1, maxLength: 20 }),
             type: fc.constantFrom('container', 'image', 'volume', 'network'),
             size: fc.nat(),
-            createdAt: fc.date(),
+            createdAt: fc.date({ noInvalidDate: true }),
             tags: fc.array(fc.string({ minLength: 1, maxLength: 10 }), { maxLength: 5 })
           }),
           { minLength: 1, maxLength: 10 }
@@ -118,11 +118,11 @@ describe('BackupManager Property Tests', () => {
       fc.asyncProperty(
         fc.array(
           fc.record({
-            id: fc.hexaString({ minLength: 12, maxLength: 64 }),
+            id: fc.stringMatching(/^[0-9a-f]{12,64}$/),
             name: fc.string({ minLength: 1, maxLength: 20 }),
             type: fc.constantFrom('container', 'image', 'volume', 'network'),
             size: fc.nat(),
-            createdAt: fc.date(),
+            createdAt: fc.date({ noInvalidDate: true }),
             tags: fc.array(fc.string(), { maxLength: 5 })
           }),
           { minLength: 1, maxLength: 5 }
@@ -154,7 +154,7 @@ describe('BackupManager Property Tests', () => {
   it('should handle empty resource list', async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.constant([]),
+        fc.constant<Resource[]>([]),
         async (resources) => {
           const result = await backupManager.createBackup(resources);
 

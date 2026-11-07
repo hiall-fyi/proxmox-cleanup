@@ -44,6 +44,7 @@ export class ResourceScanner implements IResourceScanner {
   private dockerClient: IDockerClient;
   private resourceFilter: ResourceFilter;
   private dryRun: boolean;
+  private protectedObserver?: (resource: Resource) => void;
 
   constructor(dockerClient: IDockerClient, protectedPatterns: string[] = [], dryRun: boolean = false) {
     this.dockerClient = dockerClient;
@@ -55,7 +56,7 @@ export class ResourceScanner implements IResourceScanner {
   async scanContainers(): Promise<ContainerResource[]> {
     const containers = await this.dockerClient.listContainers(true);
     const unused = containers.filter(c => REMOVABLE_CONTAINER_STATES.has(c.status));
-    return this.resourceFilter.filterProtected(unused);
+    return this.excludeProtected(unused);
   }
 
   /**
@@ -76,7 +77,7 @@ export class ResourceScanner implements IResourceScanner {
       }))
       .filter(image => image.usedByContainers.length === 0);
 
-    return this.resourceFilter.filterProtected(imagesWithUsage);
+    return this.excludeProtected(imagesWithUsage);
   }
 
   /**
@@ -99,7 +100,7 @@ export class ResourceScanner implements IResourceScanner {
       }))
       .filter(volume => !mountedNames.has(volume.name));
 
-    return this.resourceFilter.filterProtected(volumesWithUsage);
+    return this.excludeProtected(volumesWithUsage);
   }
 
   /**
@@ -121,7 +122,15 @@ export class ResourceScanner implements IResourceScanner {
         connectedContainers: this.containersOn(containers, network.name)
       }));
 
-    return this.resourceFilter.filterProtected(unusedNetworks);
+    return this.excludeProtected(unusedNetworks);
+  }
+
+  private excludeProtected<T extends Resource>(resources: T[]): T[] {
+    const observe = this.protectedObserver;
+    if (observe) {
+      this.resourceFilter.getProtected(resources).forEach(r => observe(r));
+    }
+    return this.resourceFilter.filterProtected(resources);
   }
 
   /** Non-empty names the containers reference, via `pick`. */
@@ -252,6 +261,10 @@ export class ResourceScanner implements IResourceScanner {
 
   isDryRun(): boolean {
     return this.dryRun;
+  }
+
+  setProtectedObserver(cb: (resource: Resource) => void): void {
+    this.protectedObserver = cb;
   }
 
   setDryRun(dryRun: boolean): void {
