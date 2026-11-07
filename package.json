@@ -44,7 +44,7 @@
   "devDependencies": {
     "@types/dockerode": "^4.0.1",
     "@types/jest": "^30.0.0",
-    "@types/node": "^20.19.27",
+    "@types/node": "^26.6.6",
     "@typescript-eslint/eslint-plugin": "^8.69.0",
     "@typescript-eslint/parser": "^8.59.3",
     "eslint": "^9.39.4",
